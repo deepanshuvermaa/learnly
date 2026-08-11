@@ -1,0 +1,97 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-dm-sans);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--color-bone);
+  /* Transparent so the overlay window's rounded panel shows the desktop behind. */
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: 0.01em;
+  user-select: none;
+  cursor: default;
+}
+
+::selection {
+  background: rgba(107, 98, 242, 0.35);
+}
+
+/* Editorial headings use Geist; body/UI uses DM Sans (never Geist below 24px). */
+h1,
+h2,
+h3 {
+  font-family: var(--font-geist);
+  font-weight: var(--font-weight-medium);
+  margin: 0;
+  letter-spacing: -0.02em;
+  color: var(--color-bone);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  color: var(--color-bone);
+}
+
+/* Thin, quiet scrollbars in keeping with the achromatic restraint. */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(229, 229, 229, 0.12);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(229, 229, 229, 0.22);
+}
+
+/* Anything the OS should treat as a window drag handle. */
+.drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+@keyframes listenly-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes listenly-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}

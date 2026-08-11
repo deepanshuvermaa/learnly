@@ -1,0 +1,83 @@
+/* Dimension design system — dusk-lit workspace with frosted glass panels.
+   Achromatic discipline: white + warm grays do the talking; a single violet
+   (#6b62f2) appears only as a gradient wash. Do not introduce new hues. */
+:root {
+  /* Colors */
+  --color-void-canvas: #0a0a0a;
+  --color-graphite: #161616;
+  --color-frosted-glass: #d4d4d4;
+  --color-ink-black: #000000;
+  --color-snow-white: #ffffff;
+  --color-bone: #ededed;
+  --color-ash: #c2c2c2;
+  --color-slate: #686868;
+  --color-smoke: #b2b2b2;
+  --color-hairline: #e5e5e5;
+  --color-dusk-violet: #6b62f2;
+  --gradient-dusk-violet: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0),
+    rgba(0, 0, 0, 0) 40%,
+    rgba(107, 98, 242, 0.565) 50%,
+    rgba(0, 0, 0, 0) 60%,
+    rgba(0, 0, 0, 0)
+  );
+  --gradient-hero-horizon: linear-gradient(100deg, #d98f5a 0%, #7a5cc4 48%, #2f5fd0 100%);
+  --gradient-radial-spotlight: radial-gradient(circle at 50% 30%, rgba(107, 98, 242, 0.35), rgba(10, 10, 10, 0) 60%);
+
+  /* Frosted surface fills */
+  --surface-frosted: rgba(212, 212, 212, 0.1);
+  --surface-frosted-strong: rgba(212, 212, 212, 0.14);
+  --hairline: 1px solid var(--color-hairline);
+  --hairline-soft: 1px solid rgba(229, 229, 229, 0.14);
+
+  /* Typography */
+  --font-dm-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-geist: 'Geist', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --text-caption: 13px;
+  --text-body: 16px;
+  --text-subheading: 18px;
+  --text-heading-sm: 24px;
+  --text-heading: 36px;
+  --text-heading-lg: 48px;
+  --text-display: 72px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Spacing */
+  --spacing-4: 4px;
+  --spacing-6: 6px;
+  --spacing-8: 8px;
+  --spacing-10: 10px;
+  --spacing-12: 12px;
+  --spacing-14: 14px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+
+  /* Radii */
+  --radius-icons: 4px;
+  --radius-ui: 10px;
+  --radius-nav: 19px;
+  --radius-cards: 24px;
+  --radius-largecards: 40px;
+  --radius-panels: 42px;
+  --radius-buttons: 9999px;
+
+  /* Elevation (translucency + hairline, never heavy shadow) */
+  --shadow-subtle: rgba(255, 255, 255, 0.1) 0px 0px 0px 1px inset;
+  --elevation-nav: rgba(255, 255, 255, 0.02) 0px 3px 4.5px, rgba(0, 0, 0, 0.04) 0px 10px 8px,
+    rgba(0, 0, 0, 0.1) 0px 4px 3px;
+
+  /* Surfaces */
+  --surface-0: var(--color-void-canvas);
+  --surface-1: var(--color-graphite);
+}
