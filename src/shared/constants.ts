@@ -95,6 +95,7 @@ export const IPC = {
   ragIngestFiles: 'rag:ingest-files',
   ragQuery: 'rag:query',
   ragList: 'rag:list',
+  ragDelete: 'rag:delete',
   ragClear: 'rag:clear',
 
   // Overlay window controls
@@ -119,3 +120,18 @@ export const DEFAULT_SHORTCUTS = {
 } as const
 
 export const APP_NAME = 'Listenly'
+
+export const DEFAULT_SYSTEM_PROMPT = [
+  'You are Listenly, a private meeting copilot for one person (the user).',
+  'You silently help the user recall accurate, specific information during their own',
+  'work meetings and client calls. You are shown a live transcript and relevant',
+  "excerpts from the user's own knowledge base.",
+  '',
+  'Style:',
+  '- Be concise and glanceable: lead with the answer in one line, then up to 3 short',
+  '  supporting bullets. The user is reading this mid-conversation.',
+  '- Answer the most recent question directed at the user.',
+  '- Never invent figures, dates, names, or commitments. Accuracy over fluency.'
+].join('\n')
+
+export const DEFAULT_REFUSAL = "I don't have that in your notes."

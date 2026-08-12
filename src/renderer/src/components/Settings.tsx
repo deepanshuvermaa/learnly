@@ -1,11 +1,40 @@
 import { useEffect, useState } from 'react'
-import { PROVIDERS, PROVIDER_IDS, type ProviderId } from '@shared/constants'
-import type { RagDocument } from '@shared/types'
+import {
+  PROVIDERS,
+  PROVIDER_IDS,
+  DEFAULT_SYSTEM_PROMPT,
+  DEFAULT_REFUSAL,
+  type ProviderId
+} from '@shared/constants'
+import type { RagDocument, CopilotExample } from '@shared/types'
 import { useStore } from '../store/useStore'
 import { listAudioInputs } from '../lib/audio/capture'
+import { uid } from '../lib/uid'
 import { PillButton, HairlineButton, FrostedCard, SectionHeader, TextInput } from './ui'
 
-type Tab = 'providers' | 'transcription' | 'knowledge' | 'privacy' | 'shortcuts' | 'about'
+const areaStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'rgba(0,0,0,0.25)',
+  border: '1px solid var(--color-hairline)',
+  borderRadius: 'var(--radius-ui)',
+  padding: 12,
+  fontSize: 14,
+  color: 'var(--color-bone)',
+  outline: 'none',
+  resize: 'vertical',
+  userSelect: 'text',
+  fontFamily: 'var(--font-dm-sans)',
+  lineHeight: 1.5
+}
+
+type Tab =
+  | 'providers'
+  | 'instructions'
+  | 'knowledge'
+  | 'transcription'
+  | 'privacy'
+  | 'shortcuts'
+  | 'about'
 
 export function Settings() {
   const { settings, setSettings, secrets, setSecrets } = useStore()
@@ -45,8 +74,9 @@ export function Settings() {
         {(
           [
             ['providers', 'AI providers'],
-            ['transcription', 'Transcription'],
+            ['instructions', 'Instructions'],
             ['knowledge', 'Knowledge base'],
+            ['transcription', 'Transcription'],
             ['privacy', 'Privacy & screen share'],
             ['shortcuts', 'Shortcuts'],
             ['about', 'About']
@@ -82,6 +112,7 @@ export function Settings() {
       <div className="no-drag" style={{ flex: 1, overflowY: 'auto', padding: '44px 40px 56px' }}>
         <div style={{ maxWidth: 640 }}>
           {tab === 'providers' && <ProvidersTab settings={settings} secrets={secrets} setSecrets={setSecrets} update={update} />}
+          {tab === 'instructions' && <InstructionsTab settings={settings} update={update} />}
           {tab === 'transcription' && <TranscriptionTab settings={settings} secrets={secrets} setSecrets={setSecrets} update={update} />}
           {tab === 'knowledge' && <KnowledgeTab />}
           {tab === 'privacy' && <PrivacyTab settings={settings} update={update} />}
@@ -140,6 +171,117 @@ function KeyRow({
       >
         Get a key ↗
       </a>
+    </div>
+  )
+}
+
+function InstructionsTab({ settings, update }: any) {
+  const persona: string = settings.copilot.systemPrompt
+  const examples: CopilotExample[] = settings.copilot.examples ?? []
+  const approxTokens = Math.ceil(persona.length / 4)
+
+  const setPersona = (v: string) => update({ copilot: { ...settings.copilot, systemPrompt: v } })
+  const setMode = (m: 'strict' | 'balanced') => update({ copilot: { ...settings.copilot, groundingMode: m } })
+  const setRefusal = (v: string) => update({ copilot: { ...settings.copilot, refusalText: v } })
+  const setExamples = (ex: CopilotExample[]) => update({ copilot: { ...settings.copilot, examples: ex } })
+
+  return (
+    <div>
+      <SectionHeader
+        title="Instructions"
+        hint="Tell the copilot how to act, and how tightly to stay on your material. This is the tone and behavior of every answer."
+      />
+
+      {/* Persona */}
+      <FrostedCard style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 14, color: 'var(--color-ash)' }}>How the AI should act</span>
+          <span style={{ fontSize: 12, color: 'var(--color-slate)' }}>~{approxTokens} tokens</span>
+        </div>
+        <textarea
+          value={persona}
+          onChange={(e) => setPersona(e.target.value)}
+          spellCheck={false}
+          className="no-drag"
+          style={{ ...areaStyle, minHeight: 200 }}
+          placeholder="e.g. You are my copilot in client calls. Answer in first person, in a confident but plain tone. Lead with the direct answer in one sentence, then at most two supporting points…"
+        />
+        <div style={{ marginTop: 10 }}>
+          <HairlineButton onClick={() => setPersona(DEFAULT_SYSTEM_PROMPT)}>Reset to default</HairlineButton>
+        </div>
+      </FrostedCard>
+
+      {/* Grounding */}
+      <FrostedCard style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ fontSize: 14, color: 'var(--color-ash)', marginBottom: 4 }}>Grounding</div>
+        <p style={{ fontSize: 12.5, color: 'var(--color-slate)', margin: '0 0 12px', lineHeight: 1.5 }}>
+          How tightly answers must stay inside your ingested notes and the meeting transcript.
+        </p>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          <HairlineButton active={settings.copilot.groundingMode === 'balanced'} onClick={() => setMode('balanced')}>
+            Balanced
+          </HairlineButton>
+          <HairlineButton active={settings.copilot.groundingMode === 'strict'} onClick={() => setMode('strict')}>
+            Strict (on rails)
+          </HairlineButton>
+        </div>
+        <p style={{ fontSize: 12.5, color: 'var(--color-slate)', margin: '0 0 12px', lineHeight: 1.5 }}>
+          {settings.copilot.groundingMode === 'strict'
+            ? 'Strict: answers come only from your notes + transcript. If it is not there, the copilot refuses instead of guessing.'
+            : 'Balanced: prefers your notes, but may add general knowledge clearly marked as not from your notes.'}
+        </p>
+        {settings.copilot.groundingMode === 'strict' && (
+          <div>
+            <div style={{ fontSize: 13, color: 'var(--color-slate)', marginBottom: 6 }}>What to say when the answer isn't in your notes</div>
+            <TextInput value={settings.copilot.refusalText || DEFAULT_REFUSAL} onChange={setRefusal} />
+          </div>
+        )}
+      </FrostedCard>
+
+      {/* Few-shot examples */}
+      <FrostedCard style={{ padding: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <span style={{ fontSize: 14, color: 'var(--color-ash)' }}>Example answers (few-shot)</span>
+          <HairlineButton onClick={() => setExamples([...examples, { id: uid('ex'), question: '', answer: '' }])}>
+            + Add example
+          </HairlineButton>
+        </div>
+        <p style={{ fontSize: 12.5, color: 'var(--color-slate)', margin: '0 0 14px', lineHeight: 1.5 }}>
+          Show the copilot a couple of ideal question → answer pairs. It mirrors this style. The strongest lever on tone and format.
+        </p>
+        {examples.length === 0 && (
+          <div style={{ fontSize: 13, color: 'var(--color-slate)', padding: '8px 0' }}>No examples yet.</div>
+        )}
+        {examples.map((ex, i) => (
+          <div key={ex.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: i < examples.length - 1 ? 'var(--hairline-soft)' : 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: 'var(--color-slate)' }}>Example {i + 1}</span>
+              <button
+                onClick={() => setExamples(examples.filter((e) => e.id !== ex.id))}
+                style={{ background: 'none', border: 'none', color: 'var(--color-slate)', fontSize: 12 }}
+              >
+                Remove
+              </button>
+            </div>
+            <textarea
+              value={ex.question}
+              onChange={(e) => setExamples(examples.map((x) => (x.id === ex.id ? { ...x, question: e.target.value } : x)))}
+              placeholder="Question the boss/client might ask…"
+              spellCheck={false}
+              className="no-drag"
+              style={{ ...areaStyle, minHeight: 60, marginBottom: 8 }}
+            />
+            <textarea
+              value={ex.answer}
+              onChange={(e) => setExamples(examples.map((x) => (x.id === ex.id ? { ...x, answer: e.target.value } : x)))}
+              placeholder="The ideal answer, in the exact tone/format you want…"
+              spellCheck={false}
+              className="no-drag"
+              style={{ ...areaStyle, minHeight: 80 }}
+            />
+          </div>
+        ))}
+      </FrostedCard>
     </div>
   )
 }
@@ -343,6 +485,7 @@ function KnowledgeTab() {
   const [source, setSource] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   const refresh = async () => setDocs(await window.listenly.rag.list())
   useEffect(() => {
@@ -365,9 +508,34 @@ function KnowledgeTab() {
     }
   }
 
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const files = Array.from(e.dataTransfer.files).filter((f) => /\.(md|markdown|txt|csv|json)$/i.test(f.name))
+    if (files.length === 0) return
+    setBusy(true)
+    setErr(null)
+    try {
+      for (const f of files) await window.listenly.rag.ingestText(f.name, await f.text())
+      await refresh()
+    } catch (e: any) {
+      setErr(e?.message ?? String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removeDoc = async (id: string) => {
+    await window.listenly.rag.deleteDoc(id)
+    await refresh()
+  }
+
   return (
-    <div>
-      <SectionHeader title="Knowledge base" hint="This is the moat: your docs, past-call notes, product facts. Answers are grounded in what you add here, stored on-device." />
+    <div onDragOver={(e) => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={handleDrop}>
+      <SectionHeader title="Knowledge base" hint="Your docs, past-call notes, product facts. Answers are grounded in what you add here, stored on-device." />
+      <div style={{ fontSize: 12.5, color: dragging ? 'var(--color-bone)' : 'var(--color-slate)', marginBottom: 12 }}>
+        {dragging ? 'Drop to add to your knowledge base…' : 'Supported: .md, .txt, .csv, .json — paste below, import, or drag files anywhere here.'}
+      </div>
       <FrostedCard style={{ padding: 20, marginBottom: 20 }}>
         <div style={{ marginBottom: 10 }}>
           <TextInput value={source} onChange={setSource} placeholder="Source label (e.g. Q2 pricing sheet)" />
@@ -428,13 +596,23 @@ function KnowledgeTab() {
           style={{
             display: 'flex',
             justifyContent: 'space-between',
+            alignItems: 'center',
             padding: '10px 0',
             borderBottom: 'var(--hairline-soft)',
             fontSize: 14
           }}
         >
           <span style={{ color: 'var(--color-bone)' }}>{d.source}</span>
-          <span style={{ color: 'var(--color-slate)', fontSize: 12 }}>{d.chunks} chunks</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ color: 'var(--color-slate)', fontSize: 12 }}>{d.chunks} chunks</span>
+            <button
+              onClick={() => removeDoc(d.id)}
+              title="Remove document"
+              style={{ background: 'none', border: 'none', color: 'var(--color-slate)', fontSize: 12 }}
+            >
+              Delete
+            </button>
+          </div>
         </div>
       ))}
     </div>

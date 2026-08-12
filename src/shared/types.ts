@@ -40,7 +40,18 @@ export interface Settings {
     mode: 'auto' | 'manual'
     /** Detected-question heuristic trigger for auto mode. */
     triggerOnQuestion: boolean
+    /** The persona / instructions the user edits — "act like this". */
     systemPrompt: string
+    /**
+     * Grounding discipline:
+     *  - 'strict'   = answer only from ingested notes + transcript; refuse otherwise.
+     *  - 'balanced' = prefer notes, may add general knowledge clearly marked.
+     */
+    groundingMode: 'strict' | 'balanced'
+    /** What strict mode says when the answer isn't in context. */
+    refusalText: string
+    /** Few-shot examples that shape tone/format. */
+    examples: CopilotExample[]
     maxContextChunks: number
   }
   shortcuts: {
@@ -57,6 +68,12 @@ export interface Settings {
     retainTranscripts: boolean
   }
   onboarded: boolean
+}
+
+export interface CopilotExample {
+  id: string
+  question: string
+  answer: string
 }
 
 export type SecretKey = ProviderId | 'deepgram'

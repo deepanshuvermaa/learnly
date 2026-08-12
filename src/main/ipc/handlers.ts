@@ -7,7 +7,7 @@ import { getSettings, setSettings } from '../services/settings'
 import { setSecret, clearSecret, secretsStatus, type SecretKey } from '../services/secrets'
 import { complete, cancel } from '../services/llm/router'
 import { buildMessages } from '../services/prompt'
-import { ingestText, query, listDocuments, clearAll } from '../services/rag/store'
+import { ingestText, query, listDocuments, deleteDocument, clearAll } from '../services/rag/store'
 import { sttManager } from '../services/stt/manager'
 import { saveSession, listSessions, loadSession, deleteSession } from '../services/sessions'
 import {
@@ -87,6 +87,7 @@ export function registerIpc(): void {
   })
   ipcMain.handle(IPC.ragQuery, (_e, text: string, topK?: number) => query(text, topK))
   ipcMain.handle(IPC.ragList, () => listDocuments())
+  ipcMain.handle(IPC.ragDelete, (_e, id: string) => deleteDocument(id))
   ipcMain.handle(IPC.ragClear, () => clearAll())
 
   // ---- Copilot: retrieve context + build messages in one call -------------
@@ -109,6 +110,9 @@ export function registerIpc(): void {
       }
       const messages = buildMessages({
         systemPrompt: settings.copilot.systemPrompt,
+        groundingMode: settings.copilot.groundingMode,
+        refusalText: settings.copilot.refusalText,
+        examples: settings.copilot.examples,
         transcript: args.transcript,
         context,
         explicitQuestion: args.explicitQuestion

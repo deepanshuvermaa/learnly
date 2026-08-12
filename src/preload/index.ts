@@ -59,6 +59,7 @@ const api = {
     query: (text: string, topK?: number): Promise<RagChunk[]> =>
       ipcRenderer.invoke(IPC.ragQuery, text, topK),
     list: (): Promise<RagDocument[]> => ipcRenderer.invoke(IPC.ragList),
+    deleteDoc: (id: string): Promise<void> => ipcRenderer.invoke(IPC.ragDelete, id),
     clear: (): Promise<void> => ipcRenderer.invoke(IPC.ragClear)
   },
   system: {

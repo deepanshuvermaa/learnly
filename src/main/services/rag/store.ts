@@ -130,6 +130,13 @@ export async function listDocuments(): Promise<RagDocument[]> {
   }))
 }
 
+export async function deleteDocument(docId: string): Promise<void> {
+  const store = await load()
+  delete store.docs[docId]
+  store.chunks = store.chunks.filter((c) => c.docId !== docId)
+  await persist()
+}
+
 export async function clearAll(): Promise<void> {
   cache = structuredClone(EMPTY)
   await persist()
