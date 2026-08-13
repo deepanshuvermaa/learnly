@@ -716,9 +716,38 @@ function ShortcutsTab({ settings }: any) {
 }
 
 function AboutTab() {
+  const [logPath, setLogPath] = useState('')
+  useEffect(() => {
+    window.listenly.log.path().then(setLogPath)
+  }, [])
   return (
     <div>
       <SectionHeader title="About Listenly" />
+
+      <FrostedCard style={{ padding: 20, marginBottom: 24 }}>
+        <div style={{ fontSize: 14, color: 'var(--color-ash)', marginBottom: 6 }}>Diagnostics</div>
+        <p style={{ fontSize: 12.5, color: 'var(--color-slate)', margin: '0 0 12px', lineHeight: 1.5 }}>
+          Every session writes a log file. If something breaks, this is what to share.
+        </p>
+        <div
+          style={{
+            fontFamily: 'var(--font-geist)',
+            fontSize: 12,
+            color: 'var(--color-smoke)',
+            wordBreak: 'break-all',
+            background: 'rgba(0,0,0,0.25)',
+            border: '1px solid var(--color-hairline)',
+            borderRadius: 'var(--radius-ui)',
+            padding: '8px 10px',
+            marginBottom: 10,
+            userSelect: 'text'
+          }}
+        >
+          {logPath || 'resolving…'}
+        </div>
+        <HairlineButton onClick={() => window.listenly.log.reveal()}>Open log folder</HairlineButton>
+      </FrostedCard>
+
       <p style={{ fontSize: 15, color: 'var(--color-ash)', lineHeight: 1.6 }}>
         A local-first meeting recall copilot. Everything — your keys, settings, knowledge base, and
         transcripts — stays on this device. Listenly listens to your meetings and surfaces grounded

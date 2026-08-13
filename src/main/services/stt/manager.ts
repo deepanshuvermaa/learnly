@@ -6,6 +6,7 @@ import { getSecret } from '../secrets'
 import type { SttEngine } from './types'
 import { DeepgramEngine } from './deepgram'
 import { WhisperLocalEngine } from './whisper'
+import { logInfo, logWarn, logError } from '../logger'
 
 /**
  * Owns the lifecycle of the active STT engine and fans transcript/state events
@@ -25,21 +26,35 @@ class SttManager {
 
     if (settings.stt.engine === 'deepgram') {
       const key = getSecret('deepgram')
-      if (!key) return { ok: false, error: 'No Deepgram API key set.' }
+      if (!key) {
+        logWarn('stt', 'start blocked — no Deepgram key')
+        return { ok: false, error: 'No Deepgram API key set.' }
+      }
       this.engine = new DeepgramEngine(key)
     } else {
       this.engine = new WhisperLocalEngine()
     }
 
     this.engine.onTranscript((seg) => this.broadcast(IPC.sttTranscript, seg))
-    this.engine.onState((state, detail) => this.broadcast(IPC.sttState, { state, detail }))
-
-    await this.engine.start({
-      language: settings.stt.language,
-      model: settings.stt.deepgramModel,
-      sampleRate: this.sampleRate
+    this.engine.onState((state, detail) => {
+      if (state === 'error') logError('stt', 'engine error', { engine: settings.stt.engine, detail })
+      else logInfo('stt', `state: ${state}`, detail ? { detail } : undefined)
+      this.broadcast(IPC.sttState, { state, detail })
     })
-    return { ok: true }
+
+    try {
+      await this.engine.start({
+        language: settings.stt.language,
+        model: settings.stt.deepgramModel,
+        sampleRate: this.sampleRate
+      })
+      logInfo('stt', 'started', { engine: settings.stt.engine })
+      return { ok: true }
+    } catch (err: any) {
+      logError('stt', 'start failed', err)
+      this.engine = null
+      return { ok: false, error: err?.message ?? String(err) }
+    }
   }
 
   pushAudio(speaker: Speaker, pcm: Buffer): void {

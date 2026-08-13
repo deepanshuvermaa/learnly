@@ -106,6 +106,11 @@ export const IPC = {
   windowOpenSettings: 'window:open-settings',
   dialogPickFile: 'dialog:pick-file',
 
+  // Logging
+  logWrite: 'log:write',
+  logPath: 'log:path',
+  logReveal: 'log:reveal',
+
   // Session persistence
   sessionSave: 'session:save',
   sessionList: 'session:list',

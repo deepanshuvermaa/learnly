@@ -4,6 +4,12 @@ import { registerIpc } from './ipc/handlers'
 import { registerShortcuts, unregisterShortcuts } from './shortcuts'
 import { createTray } from './tray'
 import { getSettings } from './services/settings'
+import { initLogger, logInfo, logError } from './services/logger'
+
+// Capture anything that would otherwise crash silently. Registered before
+// anything else runs so early failures are recorded too.
+process.on('uncaughtException', (err) => logError('main', 'uncaughtException', err))
+process.on('unhandledRejection', (reason) => logError('main', 'unhandledRejection', reason))
 
 // Single-instance: a second launch just reveals the overlay.
 if (!app.requestSingleInstanceLock()) {
@@ -32,6 +38,8 @@ function wireDisplayMedia(): void {
 }
 
 app.whenReady().then(async () => {
+  initLogger()
+
   // macOS gates microphone access; ask up front so capture doesn't fail silently.
   if (process.platform === 'darwin') {
     try {
@@ -51,6 +59,7 @@ app.whenReady().then(async () => {
   createOverlayWindow()
   createTray()
   registerShortcuts()
+  logInfo('app', 'ready — windows, tray, shortcuts initialised', { onboarded: settings.onboarded })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createOverlayWindow()

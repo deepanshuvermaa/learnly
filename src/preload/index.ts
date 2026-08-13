@@ -67,6 +67,12 @@ const api = {
     pickFile: (opts?: { title?: string; extensions?: string[] }): Promise<string> =>
       ipcRenderer.invoke(IPC.dialogPickFile, opts)
   },
+  log: {
+    write: (level: 'debug' | 'info' | 'warn' | 'error', scope: string, message: string, data?: unknown) =>
+      ipcRenderer.send(IPC.logWrite, { level, scope, message, data }),
+    path: (): Promise<string> => ipcRenderer.invoke(IPC.logPath),
+    reveal: (): Promise<void> => ipcRenderer.invoke(IPC.logReveal)
+  },
   overlay: {
     toggle: () => ipcRenderer.invoke(IPC.overlayToggle),
     setInteractive: (v: boolean) => ipcRenderer.invoke(IPC.overlaySetInteractive, v),

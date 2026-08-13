@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/useStore'
 import { capture } from '../lib/audio/capture'
 import { ask } from '../lib/copilot'
+import { rlog } from '../lib/log'
 import { PillButton, HairlineButton, StatusPill } from './ui'
 
 export function Overlay() {
@@ -55,6 +56,7 @@ export function Overlay() {
 
   const reallyStart = async () => {
     setConsentOpen(false)
+    rlog.info('capture', 'start requested', { micOn, sysOn, engine: settings?.stt.engine })
     try {
       const res = await window.listenly.stt.start()
       if (!res.ok) throw new Error(res.error || 'Failed to start transcription.')
@@ -64,7 +66,9 @@ export function Overlay() {
         macSystemDeviceId: settings?.stt.macSystemAudioDeviceId || undefined
       })
       setCapturing(true)
+      rlog.info('capture', 'started ok')
     } catch (e: any) {
+      rlog.error('capture', 'start failed', e)
       setError(e?.message ?? String(e))
       await capture.stop().catch(() => {})
       await window.listenly.stt.stop().catch(() => {})

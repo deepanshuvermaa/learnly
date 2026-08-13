@@ -10,6 +10,7 @@ import { buildMessages } from '../services/prompt'
 import { ingestText, query, listDocuments, deleteDocument, clearAll } from '../services/rag/store'
 import { sttManager } from '../services/stt/manager'
 import { saveSession, listSessions, loadSession, deleteSession } from '../services/sessions'
+import { log, logError, getLogPath, revealLogs, type LogLevel } from '../services/logger'
 import {
   applyContentProtection,
   setInteractive,
@@ -53,6 +54,7 @@ export function registerIpc(): void {
       })
       if (!sender.isDestroyed()) sender.send(IPC.llmStreamDone, { requestId: req.requestId, usage })
     } catch (err: any) {
+      logError('llm', 'completion failed', { provider: req.provider, model: req.model, error: err })
       if (!sender.isDestroyed())
         sender.send(IPC.llmStreamError, { requestId: req.requestId, message: err?.message ?? String(err) })
     }
@@ -105,8 +107,9 @@ export function registerIpc(): void {
       let context: RagChunk[] = []
       try {
         if (q) context = await query(q, settings.copilot.maxContextChunks)
-      } catch {
+      } catch (err) {
         // Retrieval failing (e.g. no embedding key) must not block a plain answer.
+        logError('rag', 'retrieval failed (continuing without context)', err)
       }
       const messages = buildMessages({
         systemPrompt: settings.copilot.systemPrompt,
@@ -137,6 +140,14 @@ export function registerIpc(): void {
   ipcMain.handle(IPC.windowOpenSettings, () => {
     openSettingsWindow() // do NOT return the BrowserWindow — it isn't IPC-cloneable
   })
+  // ---- Logging ------------------------------------------------------------
+  // Renderer forwards its logs/errors here so everything lands in one file.
+  ipcMain.on(IPC.logWrite, (_e, p: { level: LogLevel; scope: string; message: string; data?: unknown }) => {
+    log(p.level, `renderer:${p.scope}`, p.message, p.data)
+  })
+  ipcMain.handle(IPC.logPath, () => getLogPath())
+  ipcMain.handle(IPC.logReveal, () => revealLogs())
+
   ipcMain.handle(IPC.dialogPickFile, async (e, opts?: { title?: string; extensions?: string[] }) => {
     const win = senderWindow(e)
     const res = await dialog.showOpenDialog(win!, {
