@@ -71,7 +71,16 @@ export function registerIpc(): void {
   })
 
   // ---- RAG ----------------------------------------------------------------
-  ipcMain.handle(IPC.ragIngestText, (_e, source: string, text: string) => ingestText(source, text))
+  ipcMain.handle(IPC.ragIngestText, async (_e, source: string, text: string) => {
+    try {
+      const doc = await ingestText(source, text)
+      log('info', 'rag', 'ingested text', { source, chunks: doc.chunks })
+      return doc
+    } catch (err) {
+      logError('rag', 'ingest text failed', { source, error: err })
+      throw err
+    }
+  })
   ipcMain.handle(IPC.ragIngestFiles, async (e) => {
     const win = senderWindow(e)
     const res = await dialog.showOpenDialog(win!, {
@@ -81,9 +90,15 @@ export function registerIpc(): void {
     })
     if (res.canceled) return []
     const docs = []
-    for (const path of res.filePaths) {
-      const text = await fs.readFile(path, 'utf8')
-      docs.push(await ingestText(basename(path), text))
+    try {
+      for (const path of res.filePaths) {
+        const text = await fs.readFile(path, 'utf8')
+        docs.push(await ingestText(basename(path), text))
+      }
+      log('info', 'rag', 'ingested files', { count: docs.length })
+    } catch (err) {
+      logError('rag', 'ingest files failed', err)
+      throw err
     }
     return docs
   })

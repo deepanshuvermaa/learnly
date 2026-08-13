@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useStore } from '../store/useStore'
+import type { TranscriptSegment } from '@shared/types'
+import { useStore, type TimedSegment, type Suggestion } from '../store/useStore'
 import { capture } from '../lib/audio/capture'
 import { ask } from '../lib/copilot'
 import { rlog } from '../lib/log'
@@ -82,10 +83,36 @@ export function Overlay() {
     setCapturing(false)
   }
 
-  const rows = useMemo(() => {
-    const live = [interim.them, interim.me].filter(Boolean) as typeof finals
-    return [...finals.slice(-40), ...live]
-  }, [finals, interim])
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // The current answer is pinned separately (below) so it stays readable while
+  // the transcript keeps scrolling. The scrolling history therefore shows the
+  // conversation plus any PREVIOUS answers — never the pinned latest one.
+  const latestAnswer: Suggestion | undefined = suggestions[0]
+
+  const timeline = useMemo(() => {
+    const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
+    const kept: TimedSegment[] = []
+    for (const seg of finals.slice(-80)) {
+      const n = norm(seg.text)
+      const dup = kept.some((k) => norm(k.text) === n && Math.abs(k.at - seg.at) < 5000)
+      if (!dup) kept.push(seg)
+    }
+    const items = [
+      ...kept.map((f) => ({ kind: 'seg' as const, at: f.at, key: f.id, seg: f })),
+      // exclude suggestions[0] — it's pinned above, not in the scroll history
+      ...suggestions.slice(1).map((s) => ({ kind: 'sug' as const, at: s.at, key: s.id, sug: s }))
+    ].sort((a, b) => a.at - b.at)
+    return items
+  }, [finals, suggestions])
+
+  const liveInterim = [interim.them, interim.me].filter(Boolean) as TranscriptSegment[]
+
+  // Keep the newest content in view (chat-style, newest at the bottom).
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [timeline, suggestions, liveInterim.length])
 
   const stateTone = sttState === 'live' ? 'live' : sttState === 'error' ? 'error' : 'idle'
 
@@ -175,32 +202,47 @@ export function Overlay() {
         <div style={{ padding: '0 16px 8px', color: '#d3a3a3', fontSize: 13 }}>{sttDetail}</div>
       )}
 
-      {/* Body: suggestions (top) + transcript (bottom) */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 16px' }} className="no-drag">
-        {suggestions.length === 0 && rows.length === 0 && <EmptyState />}
-
-        {suggestions.map((s) => (
-          <SuggestionCard key={s.id} s={s} />
-        ))}
-
-        {rows.length > 0 && (
-          <div style={{ marginTop: suggestions.length ? 18 : 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-slate)' }}>
-                Transcript
-              </span>
-              <button
-                onClick={clearTranscript}
-                style={{ background: 'none', border: 'none', color: 'var(--color-slate)', fontSize: 12 }}
-              >
-                Clear
-              </button>
+      {/* Body: pinned current answer (stays put) + scrolling transcript below */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {latestAnswer && (
+          <div style={{ padding: '10px 16px 0', flexShrink: 0 }}>
+            <div style={{ maxHeight: '42vh', overflowY: 'auto' }} className="no-drag">
+              <AnswerCard s={latestAnswer} pinned />
             </div>
-            {rows.map((seg) => (
-              <TranscriptLine key={seg.id} speaker={seg.speaker} text={seg.text} dim={!seg.isFinal} />
-            ))}
           </div>
         )}
+
+        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 16px', minHeight: 0 }} className="no-drag">
+          {timeline.length === 0 && liveInterim.length === 0 && !latestAnswer ? (
+            <EmptyState />
+          ) : (
+            <>
+              {(timeline.length > 0 || latestAnswer) && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-slate)' }}>
+                    Conversation
+                  </span>
+                  <button
+                    onClick={clearTranscript}
+                    style={{ background: 'none', border: 'none', color: 'var(--color-slate)', fontSize: 12 }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+              {timeline.map((item) =>
+                item.kind === 'seg' ? (
+                  <TranscriptLine key={item.key} speaker={item.seg.speaker} text={item.seg.text} dim={false} />
+                ) : (
+                  <AnswerCard key={item.key} s={item.sug} />
+                )
+              )}
+              {liveInterim.map((seg) => (
+                <TranscriptLine key={seg.id} speaker={seg.speaker} text={seg.text} dim />
+              ))}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Footer: honest reminder of what content protection does */}
@@ -228,22 +270,33 @@ export function Overlay() {
   )
 }
 
-function SuggestionCard({ s }: { s: ReturnType<typeof useStore.getState>['suggestions'][number] }) {
-  const ref = useRef<HTMLDivElement>(null)
+function AnswerCard({ s, pinned }: { s: Suggestion; pinned?: boolean }) {
   return (
     <div
-      ref={ref}
       style={{
-        background: 'var(--surface-frosted)',
-        border: 'var(--hairline-soft)',
+        background: pinned ? 'rgba(107,98,242,0.08)' : 'var(--surface-frosted)',
         borderRadius: 'var(--radius-cards)',
-        padding: 16,
-        marginTop: 10,
+        // Distinct left accent so an answer is unmistakably the copilot's reply,
+        // not something a speaker said.
+        border: 'var(--hairline-soft)',
+        borderLeftWidth: pinned ? 3 : 2,
+        borderLeftColor: 'var(--color-dusk-violet)',
+        padding: 14,
+        margin: pinned ? 0 : '8px 0 14px',
         animation: 'listenly-fade-up 200ms ease'
       }}
     >
-      <div style={{ fontSize: 12, color: 'var(--color-slate)', marginBottom: 6 }}>
-        {s.question.length > 90 ? s.question.slice(0, 90) + '…' : s.question}
+      <div
+        style={{
+          fontSize: 10.5,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: 'var(--color-dusk-violet)',
+          marginBottom: 6,
+          fontWeight: 600
+        }}
+      >
+        {pinned ? 'Current answer' : 'Answer'}
       </div>
       <div style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--color-bone)', whiteSpace: 'pre-wrap', userSelect: 'text' }}>
         {s.answer || (s.streaming ? '…' : '')}
@@ -273,21 +326,51 @@ function SuggestionCard({ s }: { s: ReturnType<typeof useStore.getState>['sugges
   )
 }
 
+/**
+ * Chat-style transcript line. The other person ("Them") is left-aligned and
+ * bright; you ("You") are right-aligned and muted — so at a glance you always
+ * know who said what, and your own speech never gets mistaken for a question.
+ */
 function TranscriptLine({ speaker, text, dim }: { speaker: string; text: string; dim: boolean }) {
-  const label = speaker === 'me' ? 'You' : speaker === 'them' ? 'Them' : '?'
+  const isMe = speaker === 'me'
+  const label = isMe ? 'You' : speaker === 'them' ? 'Them' : '?'
   return (
-    <div style={{ display: 'flex', gap: 10, marginBottom: 6, opacity: dim ? 0.5 : 1 }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: isMe ? 'flex-end' : 'flex-start',
+        marginBottom: 8,
+        opacity: dim ? 0.5 : 1
+      }}
+    >
       <span
         style={{
-          fontSize: 11,
-          fontWeight: 500,
-          color: speaker === 'them' ? 'var(--color-bone)' : 'var(--color-slate)',
-          minWidth: 34
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: isMe ? 'var(--color-slate)' : 'var(--color-ash)',
+          marginBottom: 2
         }}
       >
         {label}
       </span>
-      <span style={{ fontSize: 13.5, color: 'var(--color-ash)', lineHeight: 1.45, userSelect: 'text' }}>{text}</span>
+      <span
+        style={{
+          maxWidth: '85%',
+          fontSize: 13.5,
+          lineHeight: 1.45,
+          userSelect: 'text',
+          padding: '6px 10px',
+          borderRadius: 12,
+          background: isMe ? 'rgba(212,212,212,0.06)' : 'rgba(107,98,242,0.10)',
+          border: '1px solid var(--hairline-soft)',
+          color: isMe ? 'var(--color-smoke)' : 'var(--color-bone)'
+        }}
+      >
+        {text}
+      </span>
     </div>
   )
 }

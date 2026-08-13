@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import type { Settings, SecretsStatus, TranscriptSegment, RagChunk } from '@shared/types'
 
+/** A finalized transcript line stamped with wall-clock arrival time, so it can
+ *  be interleaved chronologically with answer cards in the conversation view. */
+export type TimedSegment = TranscriptSegment & { at: number }
+
 export interface Suggestion {
   id: string
   question: string
@@ -21,7 +25,7 @@ interface AppState {
 
   // Live transcript. Interim (non-final) segments are kept per-speaker and
   // replaced as they finalize, so the view never floods with duplicates.
-  finals: TranscriptSegment[]
+  finals: TimedSegment[]
   interim: Record<'me' | 'them', TranscriptSegment | null>
 
   suggestions: Suggestion[]
@@ -64,13 +68,13 @@ export const useStore = create<AppState>((set, get) => ({
       const spk = seg.speaker as 'me' | 'them'
       if (seg.isFinal) {
         return {
-          finals: [...st.finals, seg].slice(-200),
+          finals: [...st.finals, { ...seg, at: Date.now() }].slice(-200),
           interim: { ...st.interim, [spk]: null }
         }
       }
       return { interim: { ...st.interim, [spk]: seg } }
     }),
-  clearTranscript: () => set({ finals: [], interim: { me: null, them: null } }),
+  clearTranscript: () => set({ finals: [], interim: { me: null, them: null }, suggestions: [] }),
   transcriptForModel: () => {
     const { finals, interim } = get()
     const live = [interim.them, interim.me].filter(Boolean) as TranscriptSegment[]

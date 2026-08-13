@@ -67,8 +67,12 @@ function chunkText(text: string, target = 900, overlap = 150): string[] {
       if (brk > target * 0.5) end = i + brk + 1
     }
     chunks.push(clean.slice(i, end).trim())
-    i = end - overlap
-    if (i < 0) i = 0
+    // Stop once we've consumed the whole document.
+    if (end >= clean.length) break
+    // Advance with overlap, but never move backwards (which would loop forever
+    // when the trailing segment is shorter than `overlap`).
+    const next = end - overlap
+    i = next > i ? next : end
   }
   return chunks.filter(Boolean)
 }

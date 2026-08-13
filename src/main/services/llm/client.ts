@@ -2,7 +2,7 @@ import type { ChatMessage } from '@shared/types'
 
 /**
  * Minimal OpenAI-compatible client built on fetch + SSE. Every provider in the
- * registry (OpenAI, xAI Grok, Moonshot Kimi, and Gemini via its compat endpoint)
+ * registry (OpenAI, Groq, Moonshot Kimi, and Gemini via its compat endpoint)
  * accepts this exact wire format, so we deliberately avoid per-vendor SDKs.
  */
 

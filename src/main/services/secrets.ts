@@ -64,6 +64,7 @@ export function secretsStatus(): SecretsStatus {
   return {
     gemini: has('gemini'),
     openai: has('openai'),
+    groq: has('groq'),
     xai: has('xai'),
     moonshot: has('moonshot'),
     deepgram: has('deepgram')

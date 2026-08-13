@@ -4,7 +4,7 @@
  * stay free of any Node- or DOM-specific APIs.
  */
 
-export type ProviderId = 'gemini' | 'openai' | 'xai' | 'moonshot'
+export type ProviderId = 'gemini' | 'openai' | 'groq' | 'xai' | 'moonshot'
 
 export interface ProviderSpec {
   id: ProviderId
@@ -32,7 +32,7 @@ export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
     defaultModel: 'gemini-2.5-flash',
     supportsEmbeddings: true,
-    defaultEmbeddingModel: 'text-embedding-004',
+    defaultEmbeddingModel: 'gemini-embedding-001',
     keysUrl: 'https://aistudio.google.com/app/apikey'
   },
   openai: {
@@ -44,11 +44,19 @@ export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
     defaultEmbeddingModel: 'text-embedding-3-small',
     keysUrl: 'https://platform.openai.com/api-keys'
   },
+  groq: {
+    id: 'groq',
+    label: 'Groq',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    defaultModel: 'llama-3.3-70b-versatile',
+    supportsEmbeddings: false,
+    keysUrl: 'https://console.groq.com/keys'
+  },
   xai: {
     id: 'xai',
     label: 'xAI Grok',
     baseUrl: 'https://api.x.ai/v1',
-    defaultModel: 'grok-2-latest',
+    defaultModel: 'grok-3',
     supportsEmbeddings: false,
     keysUrl: 'https://console.x.ai'
   },

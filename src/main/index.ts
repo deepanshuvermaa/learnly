@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, systemPreferences } from 'electron'
+import { app, BrowserWindow, session, systemPreferences, desktopCapturer } from 'electron'
 import { createOverlayWindow, openSettingsWindow } from './windows/overlayWindow'
 import { registerIpc } from './ipc/handlers'
 import { registerShortcuts, unregisterShortcuts } from './shortcuts'
@@ -26,14 +26,29 @@ app.on('second-instance', () => {
 // and let the renderer pick the source. Requires Electron 30+.
 function wireDisplayMedia(): void {
   try {
-    // Grant system loopback audio for getDisplayMedia. The renderer's constraints
-    // decide whether audio is actually pulled. (useSystemPicker is available on
-    // newer Electron; on 31 the built-in picker/handler path is used.)
+    // Grant system loopback audio for getDisplayMedia. Electron 31 requires a
+    // real DesktopCapturerSource for the video field even when we only want
+    // audio, so we hand it a screen source; the renderer immediately drops the
+    // video track and keeps only the loopback audio. This also means no
+    // "pick a screen / Share audio" prompt appears — capture just starts.
     session.defaultSession.setDisplayMediaRequestHandler((_request, callback) => {
-      callback({ video: undefined as any, audio: 'loopback' as any })
+      desktopCapturer
+        .getSources({ types: ['screen'] })
+        .then((sources) => {
+          if (sources.length > 0) {
+            callback({ video: sources[0], audio: 'loopback' as any })
+          } else {
+            logError('capture', 'no screen source available for loopback audio')
+            callback({} as any)
+          }
+        })
+        .catch((err) => {
+          logError('capture', 'desktopCapturer.getSources failed', err)
+          callback({} as any)
+        })
     })
-  } catch {
-    // Older Electron without setDisplayMediaRequestHandler — renderer falls back.
+  } catch (err) {
+    logError('capture', 'setDisplayMediaRequestHandler unavailable', err)
   }
 }
 
