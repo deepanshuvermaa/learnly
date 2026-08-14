@@ -18,7 +18,7 @@ you share your slides.
 It is not a way to hide the app from your computer. The screen-share option keeps the panel out
 of the video you broadcast. It does not make the process invisible to your OS or your IT team,
 and it was never built to. Recording other people can also require their consent depending on
-where you are, and that part is on you.
+where you are, and that part is on you
 
 ## What you need
 
