@@ -1,12 +1,18 @@
 # Listenly
 
-A meeting copilot that runs entirely on your own machine. It listens to your calls,
-transcribes them as they happen, and pulls up answers from your own notes when a client or your
-boss asks you something nobody could reasonably keep in their head.
+**Working desktop product demo — local-first meeting copilot with searchable notes and live assistance.**
+
+Listenly captures meeting audio through explicit user actions, transcribes the conversation, searches the user’s own notes, and presents a focused answer panel. It is designed as a private desktop workflow with clear controls for transcription, provider choice, local processing, and meeting consent.
 
 Everything stays local. Your API keys, your notes, your transcripts. There's no Listenly
 account and no server in the middle. The only things that ever leave your machine are the calls
 to the AI and transcription providers you plug in yourself.
+
+## Product workflow
+
+```text
+Choose transcription provider → load a local knowledge base → start meeting capture → transcribe → retrieve relevant notes → show answer with explicit controls → stop and clear session data
+```
 
 ## What it does, and what it doesn't
 
@@ -32,6 +38,12 @@ where you are, and that part is on you
 You paste the keys into the app under Settings, and they're encrypted with the OS keychain. They
 never leave the machine except to hit the provider you chose.
 
+## Verification status
+
+- **Implemented product surface:** Electron desktop shell, settings flow, knowledge-base search, live transcription paths, floating answer panel, keyboard controls, and a local Whisper option.
+- **Founder-demo ready:** configure a provider, index notes, run a short consented test recording, ask a question, and show the local/cloud processing choice.
+- **Before production use:** test provider failure and reconnection, verify secure keychain storage on supported operating systems, add automated tests for audio/session state, document retention and deletion, and make consent reminders unavoidable before recording.
+
 ## Running it
 
 ```
@@ -49,7 +61,7 @@ npm run build
 npm run dist:win
 ```
 
-## Using it in a call
+## Using it in a consented call
 
 Join Zoom, Meet, or Teams like you normally would. Hit Start listening in the panel. When the
 picker asks what to share for system audio, choose the meeting window and tick "Share audio" —
@@ -73,7 +85,7 @@ cmake -B build && cmake --build build -j --config Release
 Then set the binary (build/bin/whisper-cli) and the model file (models/ggml-base.en.bin) in
 Settings. base.en keeps up fine on a laptop; the bigger models are more accurate but slower.
 
-## A couple of things to know
+## Known limitations
 
 The screen-share hiding leans on Electron's setContentProtection, which has been unreliable
 across different Electron and Windows versions, so I've pinned Electron to 31.7.6. Test it on your
