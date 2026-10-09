@@ -5,6 +5,21 @@ import { capture } from '../lib/audio/capture'
 import { ask } from '../lib/copilot'
 import { rlog } from '../lib/log'
 import { PillButton, HairlineButton, StatusPill } from './ui'
+import { CodeSuggestionPanel, CodeToast } from './CodeSuggestionPanel'
+import { useCodeGen } from '../store/useCodeGen'
+import { togglePanel } from '../lib/codegen'
+
+const kbdStyle = {
+  background: 'var(--color-slate-100)',
+  border: '1px solid var(--color-slate-200)',
+  borderRadius: 3,
+  padding: '2px 6px',
+  fontSize: 9,
+  fontFamily: 'monospace',
+  fontWeight: 500,
+  color: 'var(--color-slate-800)',
+  display: 'inline-block'
+} as const
 
 export function Overlay() {
   const {
@@ -28,6 +43,7 @@ export function Overlay() {
     setSettings(await window.listenly.settings.set({ copilot: { ...settings.copilot, mode } }))
   }
 
+  const codePanelOpen = useCodeGen((s) => s.panelOpen)
   const [micOn, setMicOn] = useState(true)
   const [sysOn, setSysOn] = useState(true)
   const [consentOpen, setConsentOpen] = useState(false)
@@ -164,18 +180,25 @@ export function Overlay() {
         style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '12px 16px', flexWrap: 'wrap' }}
       >
         {capturing ? (
-          <PillButton variant="ghost" onClick={stopCapture}>
+          <PillButton variant="ghost" onClick={stopCapture} title={`Stop (${settings?.shortcuts.askNow || 'N/A'})`}>
             Stop
           </PillButton>
         ) : (
-          <PillButton onClick={beginCapture}>Start listening</PillButton>
+          <PillButton onClick={beginCapture} title={`Start listening (${settings?.shortcuts.askNow || 'N/A'})`}>
+            Start listening
+          </PillButton>
         )}
-        <PillButton variant="ghost" onClick={() => ask()}>
+        <PillButton variant="ghost" onClick={() => ask()} title={`Ask now (${settings?.shortcuts.askNow || 'N/A'})`}>
           Ask now
         </PillButton>
         <HairlineButton active={settings?.copilot.mode === 'auto'} onClick={toggleAuto}>
           {settings?.copilot.mode === 'auto' ? 'Auto ✓' : 'Auto'}
         </HairlineButton>
+        {settings?.codeGen.enabled && (
+          <HairlineButton active={codePanelOpen} onClick={togglePanel}>
+            Code
+          </HairlineButton>
+        )}
         <HairlineButton active={micOn} onClick={() => setMicOn((v) => !v)}>
           Mic
         </HairlineButton>
@@ -190,6 +213,7 @@ export function Overlay() {
             setInteractive(next)
             window.listenly.overlay.setInteractive(next)
           }}
+          title={`Toggle click-through (${settings?.shortcuts.toggleClickThrough || 'N/A'})`}
         >
           {interactive ? 'Click-through: off' : 'Click-through: on'}
         </HairlineButton>
@@ -245,6 +269,31 @@ export function Overlay() {
         </div>
       </div>
 
+      {/* Shortcuts info */}
+      <div
+        style={{
+          padding: '8px 16px',
+          borderTop: 'var(--hairline-soft)',
+          fontSize: 10,
+          color: 'var(--color-slate)',
+          display: 'flex',
+          gap: 12,
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}
+      >
+        <span style={{ fontWeight: 500 }}>Global Shortcuts:</span>
+        <span title="Start/Stop listening (global shortcut)" style={{ cursor: 'help' }}>
+          Listen: <kbd style={kbdStyle}>{settings?.shortcuts.askNow || 'not set'}</kbd>
+        </span>
+        <span title="Toggle overlay visibility (global shortcut)" style={{ cursor: 'help' }}>
+          Toggle: <kbd style={kbdStyle}>{settings?.shortcuts.toggleOverlay || 'not set'}</kbd>
+        </span>
+        <span title="Toggle click-through mode (global shortcut)" style={{ cursor: 'help' }}>
+          Click-through: <kbd style={kbdStyle}>{settings?.shortcuts.toggleClickThrough || 'not set'}</kbd>
+        </span>
+      </div>
+
       {/* Footer: honest reminder of what content protection does */}
       <div
         style={{
@@ -262,6 +311,9 @@ export function Overlay() {
           ? 'Hidden from your screen share · visible to you only'
           : 'Screen-share hiding is OFF'}
       </div>
+
+      <CodeSuggestionPanel />
+      <CodeToast />
 
       {consentOpen && (
         <ConsentGate onCancel={() => setConsentOpen(false)} onConfirm={reallyStart} />

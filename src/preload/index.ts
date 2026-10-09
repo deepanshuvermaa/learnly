@@ -9,7 +9,13 @@ import type {
   ChatMessage,
   TranscriptSegment,
   Session,
-  SecretKey
+  SecretKey,
+  CodeGenRequest,
+  CodeGenResult,
+  CodeGenRecord,
+  CodeGenStats,
+  CodeLanguage,
+  CodeSuggestion
 } from '@shared/types'
 
 /**
@@ -86,9 +92,34 @@ const api = {
     load: (id: string): Promise<Session | null> => ipcRenderer.invoke(IPC.sessionLoad, id),
     delete: (id: string) => ipcRenderer.invoke(IPC.sessionDelete, id)
   },
+  codegen: {
+    generate: (req: CodeGenRequest): Promise<{ started: boolean }> =>
+      ipcRenderer.invoke(IPC.codegenGenerate, req),
+    cancel: (requestId: string): Promise<void> => ipcRenderer.invoke(IPC.codegenCancel, requestId),
+    savePrompt: (prompt: string): Promise<Settings> => ipcRenderer.invoke(IPC.codegenSavePrompt, prompt),
+    stats: (): Promise<CodeGenStats> => ipcRenderer.invoke(IPC.codegenStats),
+    history: (): Promise<CodeGenRecord[]> => ipcRenderer.invoke(IPC.codegenHistory),
+    clearHistory: (): Promise<void> => ipcRenderer.invoke(IPC.codegenHistoryClear),
+    saveFile: (args: { code: string; language: CodeLanguage; name?: string }): Promise<string> =>
+      ipcRenderer.invoke(IPC.codegenSaveFile, args),
+    onChunk: (cb: (p: { requestId: string; delta: string }) => void) => subscribe(IPC.codegenChunk, cb),
+    onStatus: (cb: (p: { requestId: string; message: string; reset?: boolean }) => void) =>
+      subscribe(IPC.codegenStatus, cb),
+    onDone: (cb: (r: CodeGenResult) => void) => subscribe(IPC.codegenDone, cb),
+    onError: (cb: (p: { requestId: string; message: string; cancelled?: boolean }) => void) =>
+      subscribe(IPC.codegenError, cb),
+    onSuggestion: (cb: (s: CodeSuggestion) => void) => subscribe(IPC.codegenSuggestion, cb)
+  },
   shortcuts: {
     onAskNow: (cb: () => void) => subscribe('shortcut:ask-now', () => cb()),
-    onToggleClickThrough: (cb: () => void) => subscribe('shortcut:toggle-clickthrough', () => cb())
+    onToggleClickThrough: (cb: () => void) => subscribe('shortcut:toggle-clickthrough', () => cb()),
+    onToggleCodePanel: (cb: () => void) => subscribe(IPC.shortcutToggleCodePanel, () => cb()),
+    set: (
+      name: keyof Settings['shortcuts'],
+      accel: string
+    ): Promise<{ ok: boolean; failed: string[]; settings: Settings }> =>
+      ipcRenderer.invoke(IPC.shortcutsSet, name, accel),
+    check: (name: keyof Settings['shortcuts']): Promise<boolean> => ipcRenderer.invoke(IPC.shortcutsCheck, name)
   }
 }
 

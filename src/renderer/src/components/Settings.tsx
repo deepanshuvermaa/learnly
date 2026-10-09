@@ -10,7 +10,8 @@ import type { RagDocument, CopilotExample } from '@shared/types'
 import { useStore } from '../store/useStore'
 import { listAudioInputs } from '../lib/audio/capture'
 import { uid } from '../lib/uid'
-import { PillButton, HairlineButton, FrostedCard, SectionHeader, TextInput } from './ui'
+import { PillButton, HairlineButton, FrostedCard, SectionHeader, TextInput, Toggle, Row } from './ui'
+import { CodeGenSettings } from './CodeGenSettings'
 
 const areaStyle: React.CSSProperties = {
   width: '100%',
@@ -30,6 +31,7 @@ const areaStyle: React.CSSProperties = {
 type Tab =
   | 'providers'
   | 'instructions'
+  | 'codegen'
   | 'knowledge'
   | 'transcription'
   | 'privacy'
@@ -75,6 +77,7 @@ export function Settings() {
           [
             ['providers', 'AI providers'],
             ['instructions', 'Instructions'],
+            ['codegen', 'Code generation'],
             ['knowledge', 'Knowledge base'],
             ['transcription', 'Transcription'],
             ['privacy', 'Privacy & screen share'],
@@ -113,6 +116,7 @@ export function Settings() {
         <div style={{ maxWidth: 640 }}>
           {tab === 'providers' && <ProvidersTab settings={settings} secrets={secrets} setSecrets={setSecrets} update={update} />}
           {tab === 'instructions' && <InstructionsTab settings={settings} update={update} />}
+          {tab === 'codegen' && <CodeGenSettings settings={settings} secrets={secrets} update={update} />}
           {tab === 'transcription' && <TranscriptionTab settings={settings} secrets={secrets} setSecrets={setSecrets} update={update} />}
           {tab === 'knowledge' && <KnowledgeTab />}
           {tab === 'privacy' && <PrivacyTab settings={settings} update={update} />}
@@ -619,48 +623,6 @@ function KnowledgeTab() {
   )
 }
 
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      onClick={() => onChange(!on)}
-      style={{
-        width: 42,
-        height: 24,
-        borderRadius: 9999,
-        border: '1px solid var(--color-hairline)',
-        background: on ? 'var(--surface-frosted-strong)' : 'transparent',
-        position: 'relative',
-        transition: 'all 140ms ease'
-      }}
-    >
-      <span
-        style={{
-          position: 'absolute',
-          top: 2,
-          left: on ? 20 : 2,
-          width: 18,
-          height: 18,
-          borderRadius: 9999,
-          background: on ? 'var(--color-snow-white)' : 'var(--color-slate)',
-          transition: 'left 140ms ease'
-        }}
-      />
-    </button>
-  )
-}
-
-function Row({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 0', borderBottom: 'var(--hairline-soft)' }}>
-      <div>
-        <div style={{ fontSize: 14, color: 'var(--color-bone)' }}>{title}</div>
-        <div style={{ fontSize: 12.5, color: 'var(--color-slate)', marginTop: 3, lineHeight: 1.45 }}>{desc}</div>
-      </div>
-      {children}
-    </div>
-  )
-}
-
 function PrivacyTab({ settings, update }: any) {
   return (
     <div>
@@ -693,23 +655,51 @@ function PrivacyTab({ settings, update }: any) {
 }
 
 function ShortcutsTab({ settings }: any) {
-  const rows: [string, string][] = [
-    ['Toggle overlay', settings.shortcuts.toggleOverlay],
-    ['Ask now', settings.shortcuts.askNow],
-    ['Toggle click-through', settings.shortcuts.toggleClickThrough]
+  const rows: [string, string, string][] = [
+    ['Toggle overlay', settings.shortcuts.toggleOverlay, 'Show/hide the overlay window (works globally)'],
+    ['Start/Stop listening', settings.shortcuts.askNow, 'Begin or end transcript capture (works globally)'],
+    ['Toggle click-through', settings.shortcuts.toggleClickThrough, 'Allow mouse clicks through overlay (works globally)']
   ]
   return (
     <div>
-      <SectionHeader title="Shortcuts" hint="Global hotkeys work even while the meeting app is focused." />
+      <SectionHeader
+        title="Shortcuts"
+        hint="All shortcuts are GLOBAL — they work even when your meeting app is focused. You don't need to click the mouse anymore!"
+      />
+
+      <FrostedCard style={{ padding: '12px 20px', marginBottom: 20, background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+        <div style={{ fontSize: 12, color: 'var(--color-slate)', lineHeight: 1.5 }}>
+          <strong>✓ Works in any app</strong> — Press these shortcuts while on a Zoom, Teams, or any other meeting app and Listenly responds instantly.<br/>
+          <strong>✓ No mouse needed</strong> — Control Listenly entirely from your keyboard during meetings.
+        </div>
+      </FrostedCard>
+
       <FrostedCard style={{ padding: '4px 20px' }}>
-        {rows.map(([label, keys]) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0', borderBottom: 'var(--hairline-soft)' }}>
-            <span style={{ fontSize: 14, color: 'var(--color-bone)' }}>{label}</span>
-            <kbd style={{ fontFamily: 'var(--font-geist)', fontSize: 12.5, color: 'var(--color-ash)', border: '1px solid var(--color-hairline)', borderRadius: 6, padding: '3px 8px' }}>
-              {keys}
-            </kbd>
+        {rows.map(([label, keys, description]) => (
+          <div key={label} style={{ padding: '12px 0', borderBottom: 'var(--hairline-soft)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 14, color: 'var(--color-bone)', fontWeight: 500 }}>{label}</span>
+              <kbd style={{ fontFamily: 'var(--font-geist)', fontSize: 12, color: 'var(--color-ash)', border: '1px solid var(--color-hairline)', borderRadius: 6, padding: '4px 10px', background: 'var(--color-slate-100)' }}>
+                {keys}
+              </kbd>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--color-slate)', marginLeft: 0 }}>
+              {description}
+            </div>
           </div>
         ))}
+      </FrostedCard>
+
+      <FrostedCard style={{ padding: 16, marginTop: 16, background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+        <div style={{ fontSize: 12, color: 'var(--color-slate)', lineHeight: 1.6 }}>
+          <strong>Note:</strong> Shortcut keys use standard notation:
+          <ul style={{ margin: '8px 0', paddingLeft: 20 }}>
+            <li><code>Ctrl</code> or <code>Cmd</code> (uses system default)</li>
+            <li><code>Shift</code> = Shift key</li>
+            <li><code>Alt</code> = Alt key</li>
+            <li>Example: <code>Ctrl+Shift+Space</code> = Press Ctrl + Shift + Spacebar together</li>
+          </ul>
+        </div>
       </FrostedCard>
     </div>
   )

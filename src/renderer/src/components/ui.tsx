@@ -199,3 +199,47 @@ export function TextInput({
     />
   )
 }
+
+/** On/off switch for settings rows. */
+export function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      onClick={() => onChange(!on)}
+      style={{
+        width: 42,
+        height: 24,
+        borderRadius: 9999,
+        border: '1px solid var(--color-hairline)',
+        background: on ? 'var(--surface-frosted-strong)' : 'transparent',
+        position: 'relative',
+        transition: 'all 140ms ease'
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: 2,
+          left: on ? 20 : 2,
+          width: 18,
+          height: 18,
+          borderRadius: 9999,
+          background: on ? 'var(--color-snow-white)' : 'var(--color-slate)',
+          transition: 'left 140ms ease'
+        }}
+      />
+    </button>
+  )
+}
+
+/** Settings row: title + description on the left, control on the right. */
+export function Row({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 0', borderBottom: 'var(--hairline-soft)' }}>
+      <div>
+        <div style={{ fontSize: 14, color: 'var(--color-bone)' }}>{title}</div>
+        <div style={{ fontSize: 12.5, color: 'var(--color-slate)', marginTop: 3, lineHeight: 1.45 }}>{desc}</div>
+      </div>
+      {children}
+    </div>
+  )
+}

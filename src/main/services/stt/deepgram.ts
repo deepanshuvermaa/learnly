@@ -1,6 +1,9 @@
 import WebSocket from 'ws'
 import type { Speaker, TranscriptSegment } from '@shared/types'
 import type { SttEngine, SttStartOptions } from './types'
+import { perfMonitor } from '../performanceMonitor'
+import { metricsCollector } from '../metricsCollector'
+import { logInfo } from '../logger'
 
 /**
  * Deepgram live transcription with TURN AGGREGATION.
@@ -119,14 +122,34 @@ export class DeepgramEngine implements SttEngine {
     if (!buf || !buf.text.trim()) return
     if (buf.timer) clearTimeout(buf.timer)
     this.buffers.delete(speaker)
-    this.transcriptCb({
+
+    const startTime = Date.now()
+    const segment = {
       id: `${speaker}-t${this.seq++}`,
       speaker,
       text: buf.text.trim(),
       isFinal: true,
       startMs: buf.startMs,
       endMs: buf.startMs
+    }
+
+    // Record metrics
+    const durationMs = Date.now() - buf.startMs
+    const wordCount = segment.text.split(/\s+/).length
+    const avgConfidence = 0.92 // Deepgram doesn't expose per-utterance confidence in live mode, default to high
+
+    perfMonitor.recordOperation({
+      name: 'stt:deepgram',
+      durationMs: durationMs,
+      timestamp: startTime,
+      tags: { speaker, words: wordCount, confidence: avgConfidence },
+      success: true
     })
+
+    metricsCollector.recordSTTAttempt(avgConfidence, durationMs, true)
+    logInfo('stt:deepgram', `Utterance finalized`, { speaker, words: wordCount, durationMs })
+
+    this.transcriptCb(segment)
   }
 
   private emitInterim(speaker: Speaker, text: string): void {

@@ -1,29 +1,59 @@
 import { globalShortcut, BrowserWindow } from 'electron'
 import { IPC } from '@shared/constants'
-import { getSettings } from './services/settings'
+import type { Settings } from '@shared/types'
+import { getSettings, setSettings } from './services/settings'
 import { toggleOverlay, getOverlay } from './windows/overlayWindow'
+import { logWarn } from './services/logger'
+
+type ShortcutName = keyof Settings['shortcuts']
 
 /**
  * Global shortcuts work even when the meeting app is focused (that's the point).
- * "Ask now" and "toggle click-through" are forwarded to the overlay renderer as
- * events so the UI reacts; "toggle overlay" is handled here directly.
+ * "Ask now", "toggle click-through" and "toggle code panel" are forwarded to the
+ * overlay renderer as events so the UI reacts; "toggle overlay" is handled here
+ * directly. Returns the names whose accelerator couldn't be registered (invalid,
+ * or already claimed by another app).
  */
-export function registerShortcuts(): void {
+export function registerShortcuts(): ShortcutName[] {
   globalShortcut.unregisterAll()
-  const s = getSettings().shortcuts
+  const settings = getSettings()
+  const s = settings.shortcuts
+  const failed: ShortcutName[] = []
 
-  const safeRegister = (accel: string, fn: () => void) => {
+  const safeRegister = (name: ShortcutName, fn: () => void) => {
+    const accel = s[name]
     if (!accel) return
     try {
-      globalShortcut.register(accel, fn)
+      if (!globalShortcut.register(accel, fn)) failed.push(name)
     } catch {
-      /* invalid accelerator string — ignore */
+      failed.push(name) // invalid accelerator string
     }
   }
 
-  safeRegister(s.toggleOverlay, () => toggleOverlay())
-  safeRegister(s.askNow, () => forwardToOverlay('shortcut:ask-now'))
-  safeRegister(s.toggleClickThrough, () => forwardToOverlay('shortcut:toggle-clickthrough'))
+  safeRegister('toggleOverlay', () => toggleOverlay())
+  safeRegister('askNow', () => forwardToOverlay('shortcut:ask-now'))
+  safeRegister('toggleClickThrough', () => forwardToOverlay('shortcut:toggle-clickthrough'))
+  if (settings.codeGen.enabled) {
+    safeRegister('toggleCodePanel', () => forwardToOverlay(IPC.shortcutToggleCodePanel))
+  }
+  if (failed.length) logWarn('shortcuts', 'some shortcuts could not be registered', { failed })
+  return failed
+}
+
+/** Persist a new accelerator and re-register everything; reports whether it took. */
+export function setShortcut(name: ShortcutName, accel: string): { ok: boolean; failed: ShortcutName[] } {
+  setSettings({ shortcuts: { ...getSettings().shortcuts, [name]: accel } })
+  const failed = registerShortcuts()
+  return { ok: !failed.includes(name), failed }
+}
+
+export function isShortcutRegistered(name: ShortcutName): boolean {
+  const accel = getSettings().shortcuts[name]
+  try {
+    return !!accel && globalShortcut.isRegistered(accel)
+  } catch {
+    return false
+  }
 }
 
 function forwardToOverlay(channel: string): void {

@@ -31,6 +31,7 @@ export interface RouterCompleteArgs {
 
 export async function complete(args: RouterCompleteArgs): Promise<{
   usage?: { promptTokens?: number; completionTokens?: number }
+  model: string
 }> {
   const settings = getSettings()
   const provider = args.provider ?? settings.activeProvider
@@ -42,7 +43,7 @@ export async function complete(args: RouterCompleteArgs): Promise<{
   const controller = new AbortController()
   inflight.set(args.requestId, controller)
   try {
-    return await streamChat({
+    const { usage } = await streamChat({
       baseUrl: spec.baseUrl,
       apiKey,
       model,
@@ -52,6 +53,7 @@ export async function complete(args: RouterCompleteArgs): Promise<{
       signal: controller.signal,
       onDelta: args.onDelta
     })
+    return { usage, model }
   } finally {
     inflight.delete(args.requestId)
   }

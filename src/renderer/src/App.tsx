@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from './store/useStore'
 import { wireStreaming, ask } from './lib/copilot'
 import { feedForAutoAsk } from './lib/autoAsk'
+import { wireCodeGen } from './lib/codegen'
 import { Overlay } from './components/Overlay'
 import { Settings } from './components/Settings'
 
@@ -41,12 +42,14 @@ export function App() {
     })
     const offState = window.listenly.stt.onState(({ state, detail }) => setSttState(state, detail))
     const offAsk = window.listenly.shortcuts.onAskNow(() => ask())
+    const offCodeGen = wireCodeGen()
 
     return () => {
       mounted = false
       offTranscript()
       offState()
       offAsk()
+      offCodeGen()
     }
   }, [setSettings, setSecrets, pushTranscript, setSttState])
 

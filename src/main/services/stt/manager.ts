@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import type { Speaker } from '@shared/types'
+import type { Speaker, TranscriptSegment } from '@shared/types'
 import { IPC } from '@shared/constants'
 import { getSettings } from '../settings'
 import { getSecret } from '../secrets'
@@ -7,6 +7,8 @@ import type { SttEngine } from './types'
 import { DeepgramEngine } from './deepgram'
 import { WhisperLocalEngine } from './whisper'
 import { logInfo, logWarn, logError } from '../logger'
+import { perfMonitor } from '../performanceMonitor'
+import { metricsCollector } from '../metricsCollector'
 
 /**
  * Owns the lifecycle of the active STT engine and fans transcript/state events
@@ -14,7 +16,14 @@ import { logInfo, logWarn, logError } from '../logger'
  */
 class SttManager {
   private engine: SttEngine | null = null
+  private listeners = new Set<(seg: TranscriptSegment) => void>()
   readonly sampleRate = 16000
+
+  /** Main-process consumers of the transcript (e.g. code-question detection). */
+  onTranscript(cb: (seg: TranscriptSegment) => void): () => void {
+    this.listeners.add(cb)
+    return () => this.listeners.delete(cb)
+  }
 
   get active(): boolean {
     return this.engine !== null
@@ -35,7 +44,16 @@ class SttManager {
       this.engine = new WhisperLocalEngine()
     }
 
-    this.engine.onTranscript((seg) => this.broadcast(IPC.sttTranscript, seg))
+    this.engine.onTranscript((seg) => {
+      this.broadcast(IPC.sttTranscript, seg)
+      for (const cb of this.listeners) {
+        try {
+          cb(seg)
+        } catch (err) {
+          logError('stt', 'transcript listener failed', err)
+        }
+      }
+    })
     this.engine.onState((state, detail) => {
       if (state === 'error') logError('stt', 'engine error', { engine: settings.stt.engine, detail })
       else logInfo('stt', `state: ${state}`, detail ? { detail } : undefined)

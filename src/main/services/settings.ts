@@ -1,6 +1,11 @@
 import Store from 'electron-store'
 import type { Settings } from '@shared/types'
-import { DEFAULT_SHORTCUTS, DEFAULT_SYSTEM_PROMPT, DEFAULT_REFUSAL } from '@shared/constants'
+import {
+  DEFAULT_SHORTCUTS,
+  DEFAULT_SYSTEM_PROMPT,
+  DEFAULT_REFUSAL,
+  DEFAULT_CODEGEN_PROMPT
+} from '@shared/constants'
 
 export const defaultSettings: Settings = {
   activeProvider: 'gemini',
@@ -34,6 +39,17 @@ export const defaultSettings: Settings = {
     refusalText: DEFAULT_REFUSAL,
     examples: [],
     maxContextChunks: 6
+  },
+  codeGen: {
+    enabled: true,
+    autoDetect: true,
+    systemPrompt: DEFAULT_CODEGEN_PROMPT,
+    systemPromptHash: '',
+    systemPromptTokens: 0,
+    provider: 'groq',
+    fallback: true,
+    defaultScope: 'walkthrough',
+    language: 'auto'
   },
   shortcuts: { ...DEFAULT_SHORTCUTS },
   consent: {

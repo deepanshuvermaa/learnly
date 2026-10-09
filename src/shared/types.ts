@@ -54,10 +54,12 @@ export interface Settings {
     examples: CopilotExample[]
     maxContextChunks: number
   }
+  codeGen: CodeGenSettings
   shortcuts: {
     toggleOverlay: string
     askNow: string
     toggleClickThrough: string
+    toggleCodePanel: string
   }
   consent: {
     /** Require an explicit per-session acknowledgement before capturing audio. */
@@ -68,6 +70,95 @@ export interface Settings {
     retainTranscripts: boolean
   }
   onboarded: boolean
+}
+
+export type CodeGenScope = 'brute-force' | 'walkthrough' | 'full-code'
+
+export type CodeLanguage =
+  | 'typescript'
+  | 'javascript'
+  | 'python'
+  | 'go'
+  | 'java'
+  | 'rust'
+  | 'sql'
+  | 'bash'
+
+export interface CodeGenSettings {
+  /** Off = no detection, no panel, no hotkey. */
+  enabled: boolean
+  /** Watch the counterparty's finalized turns for technical asks. */
+  autoDetect: boolean
+  /** Prepended to every code-generation request. */
+  systemPrompt: string
+  /** SHA-256 of systemPrompt at last save; lets main skip recounting tokens. */
+  systemPromptHash: string
+  systemPromptTokens: number
+  /** Preferred provider. Others with keys are tried in order if it fails. */
+  provider: ProviderId
+  fallback: boolean
+  defaultScope: CodeGenScope
+  /** 'auto' infers the language from the question + transcript. */
+  language: CodeLanguage | 'auto'
+}
+
+/** A technical ask spotted in the live transcript, offered to the user. */
+export interface CodeSuggestion {
+  id: string
+  question: string
+  speaker: Speaker
+  intent: CodeIntent
+  confidence: number
+  recommendedScope: CodeGenScope
+  at: number
+}
+
+export type CodeIntent = 'design' | 'implement' | 'debug' | 'optimize' | 'explain' | 'how-to'
+
+export interface CodeGenRequest {
+  requestId: string
+  scope: CodeGenScope
+  question: string
+  transcript: TranscriptSegment[]
+  provider?: ProviderId
+}
+
+export interface CodeGenResult {
+  requestId: string
+  scope: CodeGenScope
+  /** Plain-language talking points, separate from the code. */
+  explanation: string
+  code: string
+  language: CodeLanguage
+  provider: ProviderId
+  model: string
+  tokensUsed: number
+  /** True when tokensUsed is our estimate rather than provider-reported usage. */
+  tokensEstimated: boolean
+  timeMs: number
+}
+
+export interface CodeGenRecord {
+  id: string
+  at: number
+  scope: CodeGenScope
+  provider: ProviderId | null
+  tokensUsed: number
+  timeMs: number
+  ok: boolean
+  error?: string
+  language?: CodeLanguage
+  /** Omitted when the user has transcript retention switched off. */
+  question?: string
+  code?: string
+}
+
+export interface CodeGenStats {
+  totalGenerations: number
+  failures: number
+  totalTokens: number
+  avgTimeMs: number
+  byProvider: Partial<Record<ProviderId, number>>
 }
 
 export interface CopilotExample {

@@ -1,8 +1,16 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { promises as fs } from 'fs'
 import { basename } from 'path'
-import { IPC } from '@shared/constants'
-import type { CompleteRequest, Session, TranscriptSegment, RagChunk } from '@shared/types'
+import { IPC, CODE_LANGUAGES } from '@shared/constants'
+import type {
+  CompleteRequest,
+  Session,
+  TranscriptSegment,
+  RagChunk,
+  Settings,
+  CodeGenRequest,
+  CodeLanguage
+} from '@shared/types'
 import { getSettings, setSettings } from '../services/settings'
 import { setSecret, clearSecret, secretsStatus, type SecretKey } from '../services/secrets'
 import { complete, cancel } from '../services/llm/router'
@@ -11,6 +19,14 @@ import { ingestText, query, listDocuments, deleteDocument, clearAll } from '../s
 import { sttManager } from '../services/stt/manager'
 import { saveSession, listSessions, loadSession, deleteSession } from '../services/sessions'
 import { log, logError, getLogPath, revealLogs, type LogLevel } from '../services/logger'
+import {
+  generateCode,
+  cancelGeneration,
+  saveSystemPrompt,
+  handleTranscriptSegment
+} from '../services/codegen/service'
+import { getStats, getHistory, clearHistory } from '../services/codegen/history'
+import { registerShortcuts, setShortcut, isShortcutRegistered } from '../shortcuts'
 import {
   applyContentProtection,
   setInteractive,
@@ -26,7 +42,13 @@ function senderWindow(e: Electron.IpcMainInvokeEvent): BrowserWindow | null {
 export function registerIpc(): void {
   // ---- Settings & secrets -------------------------------------------------
   ipcMain.handle(IPC.settingsGet, () => getSettings())
-  ipcMain.handle(IPC.settingsSet, (_e, patch) => setSettings(patch))
+  ipcMain.handle(IPC.settingsSet, (_e, patch: Partial<Settings>) => {
+    const wasEnabled = getSettings().codeGen.enabled
+    const next = setSettings(patch)
+    // The code-panel hotkey only exists while the feature is on.
+    if (next.codeGen.enabled !== wasEnabled) registerShortcuts()
+    return next
+  })
   ipcMain.handle(IPC.secretsSet, (_e, key: SecretKey, value: string) => {
     setSecret(key, value)
     return secretsStatus()
@@ -138,6 +160,40 @@ export function registerIpc(): void {
       return { messages, context }
     }
   )
+
+  // ---- Code generation ----------------------------------------------------
+  sttManager.onTranscript(handleTranscriptSegment)
+  ipcMain.handle(IPC.codegenGenerate, (e, req: CodeGenRequest) => {
+    // Streams via events; the invoke resolves immediately so the UI stays live.
+    void generateCode(req, e.sender)
+    return { started: true }
+  })
+  ipcMain.handle(IPC.codegenCancel, (_e, requestId: string) => cancelGeneration(requestId))
+  ipcMain.handle(IPC.codegenSavePrompt, (_e, prompt: string) => saveSystemPrompt(prompt))
+  ipcMain.handle(IPC.codegenStats, () => getStats())
+  ipcMain.handle(IPC.codegenHistory, () => getHistory())
+  ipcMain.handle(IPC.codegenHistoryClear, () => clearHistory())
+  ipcMain.handle(
+    IPC.codegenSaveFile,
+    async (e, args: { code: string; language: CodeLanguage; name?: string }) => {
+      const ext = CODE_LANGUAGES.find((l) => l.id === args.language)?.ext ?? 'txt'
+      const res = await dialog.showSaveDialog(senderWindow(e)!, {
+        title: 'Save code',
+        defaultPath: `${args.name || 'snippet'}.${ext}`,
+        filters: [{ name: 'Source', extensions: [ext] }]
+      })
+      if (res.canceled || !res.filePath) return ''
+      await fs.writeFile(res.filePath, args.code.endsWith('\n') ? args.code : `${args.code}\n`, 'utf8')
+      return res.filePath
+    }
+  )
+
+  // ---- Shortcuts ----------------------------------------------------------
+  ipcMain.handle(IPC.shortcutsSet, (_e, name: keyof Settings['shortcuts'], accel: string) => {
+    const res = setShortcut(name, accel)
+    return { ...res, settings: getSettings() }
+  })
+  ipcMain.handle(IPC.shortcutsCheck, (_e, name: keyof Settings['shortcuts']) => isShortcutRegistered(name))
 
   // ---- Overlay controls ---------------------------------------------------
   ipcMain.handle(IPC.overlayToggle, () => toggleOverlay())
