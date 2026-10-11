@@ -26,15 +26,6 @@ export interface ProviderSpec {
  * Gemini is reached through its OpenAI-compatibility endpoint.
  */
 export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
-  gemini: {
-    id: 'gemini',
-    label: 'Google Gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    defaultModel: 'gemini-2.5-flash',
-    supportsEmbeddings: true,
-    defaultEmbeddingModel: 'gemini-embedding-001',
-    keysUrl: 'https://aistudio.google.com/app/apikey'
-  },
   openai: {
     id: 'openai',
     label: 'OpenAI',
@@ -43,6 +34,15 @@ export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
     supportsEmbeddings: true,
     defaultEmbeddingModel: 'text-embedding-3-small',
     keysUrl: 'https://platform.openai.com/api-keys'
+  },
+  gemini: {
+    id: 'gemini',
+    label: 'Google Gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    defaultModel: 'gemini-2.5-flash',
+    supportsEmbeddings: true,
+    defaultEmbeddingModel: 'gemini-embedding-001',
+    keysUrl: 'https://aistudio.google.com/app/apikey'
   },
   groq: {
     id: 'groq',
@@ -208,7 +208,7 @@ export const CODE_LANGUAGES = [
 ] as const
 
 /** Order tried when the preferred provider fails (only providers with a key). */
-export const CODEGEN_PROVIDER_ORDER: ProviderId[] = ['groq', 'gemini', 'openai', 'xai', 'moonshot']
+export const CODEGEN_PROVIDER_ORDER: ProviderId[] = ['openai', 'groq', 'gemini', 'xai', 'moonshot']
 
 export const DEFAULT_CODEGEN_PROMPT = DEFAULT_CODE_GEN_PROMPT
 

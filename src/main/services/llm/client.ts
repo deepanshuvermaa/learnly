@@ -48,20 +48,22 @@ export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
   const startTime = Date.now()
   const startMemory = process.memoryUsage().heapUsed
 
+  const body = JSON.stringify({
+    model: opts.model,
+    messages: opts.messages,
+    temperature: opts.temperature ?? 0.3,
+    max_tokens: opts.maxTokens,
+    stream: true,
+    stream_options: { include_usage: true }
+  })
+
   const res = await fetch(`${opts.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${opts.apiKey}`
     },
-    body: JSON.stringify({
-      model: opts.model,
-      messages: opts.messages,
-      temperature: opts.temperature ?? 0.3,
-      max_tokens: opts.maxTokens,
-      stream: true,
-      stream_options: { include_usage: true }
-    }),
+    body,
     signal: opts.signal
   })
 
