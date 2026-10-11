@@ -208,7 +208,7 @@ export const CODE_LANGUAGES = [
 ] as const
 
 /** Order tried when the preferred provider fails (only providers with a key). */
-export const CODEGEN_PROVIDER_ORDER: ProviderId[] = ['openai', 'groq', 'gemini', 'xai', 'moonshot']
+export const CODEGEN_PROVIDER_ORDER: ProviderId[] = ['groq', 'openai', 'gemini', 'xai', 'moonshot']
 
 export const DEFAULT_CODEGEN_PROMPT = DEFAULT_CODE_GEN_PROMPT
 
