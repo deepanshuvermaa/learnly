@@ -121,7 +121,10 @@ export async function generateCode(req: CodeGenRequest, target: WebContents): Pr
         notes: n
       })
 
-    const chain = providerChain(req.provider ?? cg.provider, CODEGEN_PROVIDER_ORDER, (p) => !!getSecret(p), cg.fallback)
+    const selectedProvider = req.provider ?? cg.provider
+    logInfo('codegen', 'provider selection', { requestProvider: req.provider, defaultProvider: cg.provider, selectedProvider, fallbackEnabled: cg.fallback })
+    const chain = providerChain(selectedProvider, CODEGEN_PROVIDER_ORDER, (p) => !!getSecret(p), cg.fallback)
+    logInfo('codegen', 'provider chain built', { chain })
 
     const attempt = async (provider: ProviderId) => {
       const { messages, input, maxTokens } = fitToBudget(provider, build, notes, SCOPE_MAX_TOKENS[req.scope])
