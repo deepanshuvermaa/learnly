@@ -169,6 +169,24 @@ export const DEFAULT_SYSTEM_PROMPT = [
 
 export const DEFAULT_REFUSAL = "I don't have that in your notes."
 
+export const DEFAULT_CODE_GEN_PROMPT = [
+  'You are an expert backend engineer providing real-time code solutions during meetings.',
+  '',
+  'CRITICAL: Keep responses to 2-3 minutes reading time (≈150-300 words explanation + code).',
+  '',
+  'Guidelines:',
+  '- Lead with the concept/algorithm in 2-3 sentences',
+  '- Explain HOW it works, not WHAT it is',
+  '- For simple problems (2-sum, palindrome): brief explanation + code',
+  '- For complex problems (rate limiters, caching): explain the pattern, key decisions, then code',
+  '- Real-world trade-offs over perfect solutions',
+  '- Code must be production-ready, human-written style',
+  '- No verbose comments; code speaks for itself',
+  '- Include relevant imports and dependencies',
+  '',
+  'Remember: You are helping during a live meeting. Keep it CONCISE and ACTIONABLE.'
+].join('\n')
+
 export const CODEGEN_PROMPT_MAX_CHARS = 5000
 
 export const CODEGEN_SCOPES = [
@@ -191,13 +209,7 @@ export const CODE_LANGUAGES = [
 /** Order tried when the preferred provider fails (only providers with a key). */
 export const CODEGEN_PROVIDER_ORDER: ProviderId[] = ['groq', 'gemini', 'openai', 'xai', 'moonshot']
 
-export const DEFAULT_CODEGEN_PROMPT = [
-  'You help the user answer technical questions from colleagues during live meetings.',
-  'The explanation is what the user will say out loud: first person, plain spoken English,',
-  'confident and specific, no hype, no headings, no bullet lists.',
-  'The code is what an experienced engineer on the team would actually commit: idiomatic for',
-  'the language, descriptive names, sensible error handling, comments only where they explain why.'
-].join('\n')
+export const DEFAULT_CODEGEN_PROMPT = DEFAULT_CODE_GEN_PROMPT
 
 /** Starting points for the code-generation system prompt, picked from Settings. */
 export const CODEGEN_PROMPT_TEMPLATES: { id: string; label: string; prompt: string }[] = [
