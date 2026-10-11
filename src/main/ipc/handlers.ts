@@ -27,6 +27,7 @@ import {
 } from '../services/codegen/service'
 import { getStats, getHistory, clearHistory } from '../services/codegen/history'
 import { registerShortcuts, setShortcut, isShortcutRegistered } from '../shortcuts'
+import { registerDiagnosticsHandlers } from './diagnosticsHandlers'
 import {
   applyContentProtection,
   setInteractive,
@@ -40,6 +41,7 @@ function senderWindow(e: Electron.IpcMainInvokeEvent): BrowserWindow | null {
 }
 
 export function registerIpc(): void {
+  registerDiagnosticsHandlers()
   // ---- Settings & secrets -------------------------------------------------
   ipcMain.handle(IPC.settingsGet, () => getSettings())
   ipcMain.handle(IPC.settingsSet, (_e, patch: Partial<Settings>) => {

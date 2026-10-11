@@ -53,7 +53,7 @@ export const defaultSettings: Settings = {
   },
   shortcuts: { ...DEFAULT_SHORTCUTS },
   consent: {
-    acknowledgeBeforeCapture: true,
+    acknowledgeBeforeCapture: false,
     retainAudio: false,
     retainTranscripts: true
   },
