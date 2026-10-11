@@ -31,6 +31,7 @@ export function registerShortcuts(): ShortcutName[] {
   }
 
   safeRegister('toggleOverlay', () => toggleOverlay())
+  safeRegister('toggleListening', () => forwardToOverlay('shortcut:toggle-listening'))
   safeRegister('askNow', () => forwardToOverlay('shortcut:ask-now'))
   safeRegister('toggleClickThrough', () => forwardToOverlay('shortcut:toggle-clickthrough'))
   if (settings.codeGen.enabled) {

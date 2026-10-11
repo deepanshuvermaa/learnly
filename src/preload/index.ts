@@ -111,6 +111,7 @@ const api = {
     onSuggestion: (cb: (s: CodeSuggestion) => void) => subscribe(IPC.codegenSuggestion, cb)
   },
   shortcuts: {
+    onToggleListening: (cb: () => void) => subscribe('shortcut:toggle-listening', () => cb()),
     onAskNow: (cb: () => void) => subscribe('shortcut:ask-now', () => cb()),
     onToggleClickThrough: (cb: () => void) => subscribe('shortcut:toggle-clickthrough', () => cb()),
     onToggleCodePanel: (cb: () => void) => subscribe(IPC.shortcutToggleCodePanel, () => cb()),

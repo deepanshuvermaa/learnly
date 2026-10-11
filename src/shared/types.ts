@@ -57,6 +57,7 @@ export interface Settings {
   codeGen: CodeGenSettings
   shortcuts: {
     toggleOverlay: string
+    toggleListening: string
     askNow: string
     toggleClickThrough: string
     toggleCodePanel: string

@@ -64,7 +64,7 @@ export function Overlay() {
 
   // Listening toggle via global shortcut (Ctrl+Shift+Enter).
   useEffect(() => {
-    const off = window.listenly.shortcuts.onAskNow(() => {
+    const off = window.listenly.shortcuts.onToggleListening(() => {
       const state = useStore.getState()
       if (state.capturing) {
         stopCapture()
@@ -301,10 +301,13 @@ export function Overlay() {
       >
         <span style={{ fontWeight: 500 }}>Global Shortcuts:</span>
         <span title="Toggle listening on/off (global shortcut)" style={{ cursor: 'help' }}>
-          Listen: <kbd style={kbdStyle}>{settings?.shortcuts.toggleOverlay || 'not set'}</kbd>
+          Listen: <kbd style={kbdStyle}>{settings?.shortcuts.toggleListening || 'not set'}</kbd>
         </span>
         <span title="Ask now (global shortcut)" style={{ cursor: 'help' }}>
           Ask now: <kbd style={kbdStyle}>{settings?.shortcuts.askNow || 'not set'}</kbd>
+        </span>
+        <span title="Toggle panel visibility (global shortcut)" style={{ cursor: 'help' }}>
+          Toggle: <kbd style={kbdStyle}>{settings?.shortcuts.toggleOverlay || 'not set'}</kbd>
         </span>
         <span title="Toggle click-through mode (global shortcut)" style={{ cursor: 'help' }}>
           Click-through: <kbd style={kbdStyle}>{settings?.shortcuts.toggleClickThrough || 'not set'}</kbd>
