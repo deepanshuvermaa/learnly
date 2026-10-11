@@ -69,7 +69,9 @@ export async function complete(args: RouterCompleteArgs): Promise<{
         err.message.includes('401') ||
         err.message.includes('429') ||
         err.message.includes('Unauthorized') ||
-        err.message.includes('rate limit')
+        err.message.includes('rate limit') ||
+        err.message.includes('insufficient_quota') ||
+        err.message.includes('no credits')
       )
       if (!isRetryable) throw err
     }
