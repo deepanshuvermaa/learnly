@@ -161,8 +161,9 @@ export async function generateCode(req: CodeGenRequest, target: WebContents): Pr
     } catch (err) {
       // Everyone rate limited with a short wait: queue one automatic retry.
       if (!(err instanceof AllProvidersFailedError) || !err.rateLimited) throw err
-      const wait = err.retryAfterSec ?? MAX_AUTO_RETRY_WAIT_SEC + 1
+      const wait = err.retryAfterSec ?? Math.min(5, MAX_AUTO_RETRY_WAIT_SEC)
       if (wait > MAX_AUTO_RETRY_WAIT_SEC) throw err
+      logWarn('codegen', 'rate limited, retrying', { wait })
       send(target, IPC.codegenStatus, {
         requestId: req.requestId,
         message: `Rate limited. Retrying in ${Math.ceil(wait)}s…`,
