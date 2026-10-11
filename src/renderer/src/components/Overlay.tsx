@@ -73,7 +73,7 @@ export function Overlay() {
       }
     })
     return off
-  }, [capturing])
+  }, [])
 
   const beginCapture = async () => {
     setError(null)
