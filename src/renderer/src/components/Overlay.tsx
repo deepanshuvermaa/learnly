@@ -99,7 +99,11 @@ export function Overlay() {
       rlog.info('capture', 'started ok')
     } catch (e: any) {
       rlog.error('capture', 'start failed', e)
-      setError(e?.message ?? String(e))
+      const msg = e?.message ?? String(e)
+      const friendly = msg.includes('User denied') || msg.includes('user aborted')
+        ? 'Mic/audio permission denied. Check Windows Settings → Privacy & Security → Microphone/Audio'
+        : msg
+      setError(friendly)
       await capture.stop().catch(() => {})
       await window.listenly.stt.stop().catch(() => {})
       setCapturing(false)
