@@ -1,4 +1,6 @@
 import type { ChatMessage } from '@shared/types'
+import { perfMonitor } from '../performanceMonitor'
+import { metricsCollector } from '../metricsCollector'
 
 /**
  * Minimal OpenAI-compatible client built on fetch + SSE. Every provider in the
@@ -68,11 +70,6 @@ export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
     const durationMs = Date.now() - startTime
 
     // Record failure metrics
-    const { perfMonitor, metricsCollector } = await import('../performanceMonitor').then(m => ({
-      perfMonitor: m.perfMonitor,
-      metricsCollector: require('../metricsCollector').metricsCollector
-    }))
-
     perfMonitor.recordOperation({
       name: 'llm:stream',
       durationMs,
@@ -110,12 +107,7 @@ export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
         const totalTokens = (usage?.promptTokens ?? 0) + (usage?.completionTokens ?? 0)
         const memoryUsedMb = Math.round((process.memoryUsage().heapUsed - startMemory) / 1024 / 1024)
 
-        const { perfMonitor: pm, metricsCollector: mc } = await import('../performanceMonitor').then(m => ({
-          perfMonitor: m.perfMonitor,
-          metricsCollector: require('../metricsCollector').metricsCollector
-        }))
-
-        pm.recordOperation({
+        perfMonitor.recordOperation({
           name: 'llm:stream',
           durationMs,
           timestamp: startTime,
@@ -123,8 +115,8 @@ export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
           success: true
         })
 
-        pm.recordLLMMetric(opts.model, totalTokens, durationMs, true)
-        mc.recordLLMAttempt(totalTokens, durationMs, true, opts.model)
+        perfMonitor.recordLLMMetric(opts.model, totalTokens, durationMs, true)
+        metricsCollector.recordLLMAttempt(totalTokens, durationMs, true, opts.model)
 
         return { usage }
       }
@@ -148,12 +140,7 @@ export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
   const durationMs = Date.now() - startTime
   const totalTokens = (usage?.promptTokens ?? 0) + (usage?.completionTokens ?? 0)
 
-  const { perfMonitor: pm, metricsCollector: mc } = await import('../performanceMonitor').then(m => ({
-    perfMonitor: m.perfMonitor,
-    metricsCollector: require('../metricsCollector').metricsCollector
-  }))
-
-  pm.recordOperation({
+  perfMonitor.recordOperation({
     name: 'llm:stream',
     durationMs,
     timestamp: startTime,
@@ -161,7 +148,7 @@ export async function streamChat(opts: StreamOptions): Promise<StreamResult> {
     success: true
   })
 
-  mc.recordLLMAttempt(totalTokens, durationMs, true, opts.model)
+  metricsCollector.recordLLMAttempt(totalTokens, durationMs, true, opts.model)
 
   return { usage }
 }
