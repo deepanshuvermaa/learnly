@@ -9,9 +9,9 @@ import { normalizeLanguage, sanitizeCode } from './qualityFilter'
  */
 
 export const SCOPE_MAX_TOKENS: Record<CodeGenScope, number> = {
-  'brute-force': 2000,
-  walkthrough: 6000,
-  'full-code': 12000
+  'brute-force': 4000,
+  walkthrough: 16000,
+  'full-code': 24000
 }
 
 const SCOPE_INSTRUCTIONS: Record<CodeGenScope, string> = {
