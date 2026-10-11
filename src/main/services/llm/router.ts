@@ -34,50 +34,62 @@ export async function complete(args: RouterCompleteArgs): Promise<{
   model: string
 }> {
   const settings = getSettings()
-  const provider = args.provider ?? settings.activeProvider
-  const spec = PROVIDERS[provider]
-  const apiKeys = (getSecret(provider) || '')
-    .split(',')
-    .map(k => k.trim())
-    .filter(k => k.length > 0)
-  if (!apiKeys.length) throw new MissingKeyError(provider)
-
-  const model = args.model ?? settings.models[provider] ?? spec.defaultModel
+  const preferredProvider = args.provider ?? settings.activeProvider
   const controller = new AbortController()
   inflight.set(args.requestId, controller)
 
+  // Build provider chain: preferred first, then fallback order
+  const FALLBACK_ORDER: ProviderId[] = ['groq', 'gemini', 'openai', 'xai', 'moonshot']
+  const allProviders = [preferredProvider, ...FALLBACK_ORDER.filter(p => p !== preferredProvider)]
+
   let lastError: Error | null = null
-  for (const apiKey of apiKeys) {
-    try {
-      const { usage } = await streamChat({
-        baseUrl: spec.baseUrl,
-        apiKey,
-        model,
-        messages: args.messages,
-        temperature: args.temperature,
-        maxTokens: args.maxTokens,
-        signal: controller.signal,
-        onDelta: args.onDelta
-      })
-      inflight.delete(args.requestId)
-      return { usage, model }
-    } catch (err) {
-      lastError = err as Error
-      // If it's a rate limit or auth error, try the next key
-      // If it's a network error, propagate immediately
-      const isRetryable = err instanceof Error && (
-        err.message.includes('401') ||
-        err.message.includes('429') ||
-        err.message.includes('Unauthorized') ||
-        err.message.includes('rate limit') ||
-        err.message.includes('insufficient_quota') ||
-        err.message.includes('no credits')
-      )
-      if (!isRetryable) throw err
+
+  for (const provider of allProviders) {
+    const spec = PROVIDERS[provider]
+    const apiKeys = (getSecret(provider) || '')
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k.length > 0)
+
+    if (!apiKeys.length) continue // Skip if no key
+
+    const model = args.model ?? settings.models[provider] ?? spec.defaultModel
+
+    for (const apiKey of apiKeys) {
+      try {
+        const { usage } = await streamChat({
+          baseUrl: spec.baseUrl,
+          apiKey,
+          model,
+          messages: args.messages,
+          temperature: args.temperature,
+          maxTokens: args.maxTokens,
+          signal: controller.signal,
+          onDelta: args.onDelta
+        })
+        inflight.delete(args.requestId)
+        return { usage, model }
+      } catch (err) {
+        lastError = err as Error
+        // If it's a retryable error (rate limit, auth, model not found), try next provider
+        const isRetryable = err instanceof Error && (
+          err.message.includes('401') ||
+          err.message.includes('404') ||
+          err.message.includes('429') ||
+          err.message.includes('Unauthorized') ||
+          err.message.includes('rate limit') ||
+          err.message.includes('insufficient_quota') ||
+          err.message.includes('no credits') ||
+          err.message.includes('not found') ||
+          err.message.includes('does not exist')
+        )
+        if (!isRetryable) throw err
+        // If retryable, continue to next key or provider
+      }
     }
   }
   inflight.delete(args.requestId)
-  throw lastError || new MissingKeyError(provider)
+  throw lastError || new MissingKeyError(preferredProvider)
 }
 
 export function cancel(requestId: string): void {
