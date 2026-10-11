@@ -44,14 +44,15 @@ export function estimateTokens(
 }
 
 /**
- * Rough per-request ceilings (input + output). Groq's free tier caps tokens per
- * minute at ~6–12k for 70B models and Moonshot's default model has an 8k window,
- * so requests to those get trimmed; the others have far larger windows.
+ * Rough per-request ceilings (input + output). Providers have different limits:
+ * - Groq: 4k TPM free tier, but we allow 20k per request (will be rate-limited if exceeded)
+ * - Moonshot: 8k context window
+ * - Gemini/OpenAI/xAI: 100k+ windows, no practical limit
  */
 export const PROVIDER_REQUEST_BUDGET: Record<ProviderId, number> = {
-  groq: 6000,
+  groq: 20000,
   moonshot: 7500,
-  gemini: 60000,
-  openai: 60000,
-  xai: 60000
+  gemini: 100000,
+  openai: 100000,
+  xai: 100000
 }

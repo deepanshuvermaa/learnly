@@ -396,7 +396,6 @@ function AnswerCard({ s, pinned }: { s: Suggestion; pinned?: boolean }) {
               cursor: 'pointer',
               opacity: 0.7
             }}
-            title="Copy answer"
           >
             {copied ? 'Copied' : 'Copy'}
           </button>
