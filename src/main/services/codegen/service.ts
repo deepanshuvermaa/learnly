@@ -125,6 +125,7 @@ export async function generateCode(req: CodeGenRequest, target: WebContents): Pr
 
     const attempt = async (provider: ProviderId) => {
       const { messages, input, maxTokens } = fitToBudget(provider, build, notes, SCOPE_MAX_TOKENS[req.scope])
+      logInfo('codegen', 'attempting generation', { provider, scope: req.scope, requestedTokens: SCOPE_MAX_TOKENS[req.scope], actualMaxTokens: maxTokens, inputTokens: input })
       let text = ''
       const { usage, model } = await complete({
         requestId: req.requestId,

@@ -197,15 +197,15 @@ export function Overlay() {
         style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '12px 16px', flexWrap: 'wrap' }}
       >
         {capturing ? (
-          <PillButton variant="ghost" onClick={stopCapture} title={`Stop (${settings?.shortcuts.askNow || 'N/A'})`}>
+          <PillButton variant="ghost" onClick={stopCapture}>
             Stop
           </PillButton>
         ) : (
-          <PillButton onClick={beginCapture} title={`Start listening (${settings?.shortcuts.askNow || 'N/A'})`}>
+          <PillButton onClick={beginCapture}>
             Start listening
           </PillButton>
         )}
-        <PillButton variant="ghost" onClick={() => ask()} title={`Ask now (${settings?.shortcuts.askNow || 'N/A'})`}>
+        <PillButton variant="ghost" onClick={() => ask()}>
           Ask now
         </PillButton>
         <HairlineButton active={settings?.copilot.mode === 'auto'} onClick={toggleAuto}>
@@ -230,7 +230,6 @@ export function Overlay() {
             setInteractive(next)
             window.listenly.overlay.setInteractive(next)
           }}
-          title={`Toggle click-through (${settings?.shortcuts.toggleClickThrough || 'N/A'})`}
         >
           {interactive ? 'Click-through: off' : 'Click-through: on'}
         </HairlineButton>

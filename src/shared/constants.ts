@@ -148,7 +148,7 @@ export const IPC = {
 export const DEFAULT_SHORTCUTS = {
   toggleOverlay: 'CommandOrControl+Shift+Space',
   toggleListening: 'CommandOrControl+Shift+Enter',
-  askNow: 'CommandOrControl+Shift+A',
+  askNow: 'CommandOrControl+Alt+A',
   toggleClickThrough: 'CommandOrControl+Shift+I',
   toggleCodePanel: 'CommandOrControl+Shift+G'
 } as const
