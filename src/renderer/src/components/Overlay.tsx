@@ -62,6 +62,19 @@ export function Overlay() {
     return off
   }, [setInteractive])
 
+  // Listening toggle via global shortcut (Ctrl+Shift+Enter).
+  useEffect(() => {
+    const off = window.listenly.shortcuts.onAskNow(() => {
+      const state = useStore.getState()
+      if (state.capturing) {
+        stopCapture()
+      } else {
+        beginCapture()
+      }
+    })
+    return off
+  }, [capturing])
+
   const beginCapture = async () => {
     setError(null)
     if (settings?.consent.acknowledgeBeforeCapture) {
@@ -283,11 +296,11 @@ export function Overlay() {
         }}
       >
         <span style={{ fontWeight: 500 }}>Global Shortcuts:</span>
-        <span title="Start/Stop listening (global shortcut)" style={{ cursor: 'help' }}>
-          Listen: <kbd style={kbdStyle}>{settings?.shortcuts.askNow || 'not set'}</kbd>
+        <span title="Toggle listening on/off (global shortcut)" style={{ cursor: 'help' }}>
+          Listen: <kbd style={kbdStyle}>{settings?.shortcuts.toggleOverlay || 'not set'}</kbd>
         </span>
-        <span title="Toggle overlay visibility (global shortcut)" style={{ cursor: 'help' }}>
-          Toggle: <kbd style={kbdStyle}>{settings?.shortcuts.toggleOverlay || 'not set'}</kbd>
+        <span title="Ask now (global shortcut)" style={{ cursor: 'help' }}>
+          Ask now: <kbd style={kbdStyle}>{settings?.shortcuts.askNow || 'not set'}</kbd>
         </span>
         <span title="Toggle click-through mode (global shortcut)" style={{ cursor: 'help' }}>
           Click-through: <kbd style={kbdStyle}>{settings?.shortcuts.toggleClickThrough || 'not set'}</kbd>
@@ -323,6 +336,15 @@ export function Overlay() {
 }
 
 function AnswerCard({ s, pinned }: { s: Suggestion; pinned?: boolean }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    const text = s.answer || ''
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 800)
+  }
+
   return (
     <div
       style={{
@@ -340,15 +362,41 @@ function AnswerCard({ s, pinned }: { s: Suggestion; pinned?: boolean }) {
     >
       <div
         style={{
-          fontSize: 10.5,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--color-dusk-violet)',
-          marginBottom: 6,
-          fontWeight: 600
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 6
         }}
       >
-        {pinned ? 'Current answer' : 'Answer'}
+        <div
+          style={{
+            fontSize: 10.5,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: 'var(--color-dusk-violet)',
+            fontWeight: 600
+          }}
+        >
+          {pinned ? 'Current answer' : 'Answer'}
+        </div>
+        {s.answer && (
+          <button
+            onClick={handleCopy}
+            style={{
+              background: 'none',
+              border: '1px solid var(--color-hairline)',
+              borderRadius: 4,
+              padding: '2px 8px',
+              fontSize: 10,
+              color: 'var(--color-smoke)',
+              cursor: 'pointer',
+              opacity: 0.7
+            }}
+            title="Copy answer"
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        )}
       </div>
       <div style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--color-bone)', whiteSpace: 'pre-wrap', userSelect: 'text' }}>
         {s.answer || (s.streaming ? '…' : '')}
@@ -357,21 +405,22 @@ function AnswerCard({ s, pinned }: { s: Suggestion; pinned?: boolean }) {
       {s.error && <div style={{ marginTop: 8, color: '#d3a3a3', fontSize: 13 }}>{s.error}</div>}
       {s.context.length > 0 && (
         <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {s.context.slice(0, 4).map((c) => (
-            <span
-              key={c.id}
-              title={c.text.slice(0, 240)}
-              style={{
-                fontSize: 11,
-                color: 'var(--color-smoke)',
-                border: '1px solid var(--color-hairline)',
-                borderRadius: 9999,
-                padding: '3px 9px'
-              }}
-            >
-              {c.source}
-            </span>
-          ))}
+          {Array.from(new Set(s.context.map((c) => c.source)))
+            .slice(0, 3)
+            .map((source) => (
+              <span
+                key={source}
+                style={{
+                  fontSize: 11,
+                  color: 'var(--color-smoke)',
+                  border: '1px solid var(--color-hairline)',
+                  borderRadius: 9999,
+                  padding: '3px 9px'
+                }}
+              >
+                {source}
+              </span>
+            ))}
         </div>
       )}
     </div>

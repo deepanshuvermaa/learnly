@@ -55,7 +55,9 @@ export function CodeDisplay({
         <div style={{ flex: 1 }} />
         {!streaming && code && (
           <>
-            <HairlineButton onClick={copy}>{copied ? 'Copied' : 'Copy'}</HairlineButton>
+            <HairlineButton onClick={copy} title="Copy code to clipboard">
+              {copied ? '✓ Copied' : 'Copy'}
+            </HairlineButton>
             <HairlineButton onClick={() => window.listenly.codegen.saveFile({ code, language, name: fileName })}>
               Save
             </HairlineButton>
