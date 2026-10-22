@@ -1,75 +1,13 @@
 import { logInfo } from './logger'
+import type { SessionMetrics } from '@shared/types'
 
 /**
  * Centralized metrics collection for all subsystems.
  * Tracks: STT, LLM, audio capture, transcription, UI, memory, etc.
  * Data persisted for session-level analysis.
+ * The SessionMetrics shape lives in @shared/types so the renderer's diagnostics
+ * view can consume it without importing this main-process module.
  */
-
-export interface SessionMetrics {
-  sessionId: string
-  startTime: number
-  endTime?: number
-
-  // STT Metrics
-  stt: {
-    provider: string
-    totalUtterances: number
-    avgConfidence: number
-    avgLatencyMs: number
-    failureCount: number
-  }
-
-  // LLM Metrics
-  llm: {
-    provider: string
-    generationsAttempted: number
-    generationsSuccessful: number
-    totalTokensUsed: number
-    avgTokensPerGeneration: number
-    avgResponseTimeMs: number
-    totalCostEstimate: number
-  }
-
-  // Audio Metrics
-  audio: {
-    totalDurationMs: number
-    captureStartAttempts: number
-    captureStopAttempts: number
-    bufferOverruns: number
-    noiseFloor: number // -dB
-    peakVolume: number // -dB
-  }
-
-  // Transcript Metrics
-  transcript: {
-    totalLines: number
-    totalCharacters: number
-    avgLineLength: number
-    processingTimeMs: number
-    turnCount: number
-    avgTurnsPerMinute: number
-  }
-
-  // System Metrics
-  system: {
-    avgMemoryMb: number
-    peakMemoryMb: number
-    avgCpuPercent: number
-    peakCpuPercent: number
-    upTimeMs: number
-    errorsLogged: number
-    warningsLogged: number
-  }
-
-  // Quality Metrics
-  quality: {
-    audioQuality: 'poor' | 'fair' | 'good' | 'excellent'
-    transcriptionAccuracy: number // 0-1
-    llmCodeQuality: number // 0-1
-    userSatisfactionScore?: number // 1-5
-  }
-}
 
 class MetricsCollector {
   private sessionId: string = `session-${Date.now()}`

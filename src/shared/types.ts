@@ -169,7 +169,8 @@ export interface CopilotExample {
 }
 
 export type SecretKey = ProviderId | 'deepgram'
-export type SecretsStatus = Record<SecretKey, boolean>
+/** Number of comma-separated keys currently stored per provider (0 = none). */
+export type SecretsStatus = Record<SecretKey, number>
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -234,4 +235,72 @@ export interface Session {
   updatedAt: number
   transcript: TranscriptSegment[]
   suggestions: { at: number; question: string; answer: string }[]
+}
+
+/** Session-level metrics shared between the main-process collector and the
+ *  renderer's diagnostics view. Lives in shared so the renderer never imports
+ *  main-process modules (which would pull main code into the web build). */
+export interface SessionMetrics {
+  sessionId: string
+  startTime: number
+  endTime?: number
+
+  // STT Metrics
+  stt: {
+    provider: string
+    totalUtterances: number
+    avgConfidence: number
+    avgLatencyMs: number
+    failureCount: number
+  }
+
+  // LLM Metrics
+  llm: {
+    provider: string
+    generationsAttempted: number
+    generationsSuccessful: number
+    totalTokensUsed: number
+    avgTokensPerGeneration: number
+    avgResponseTimeMs: number
+    totalCostEstimate: number
+  }
+
+  // Audio Metrics
+  audio: {
+    totalDurationMs: number
+    captureStartAttempts: number
+    captureStopAttempts: number
+    bufferOverruns: number
+    noiseFloor: number // -dB
+    peakVolume: number // -dB
+  }
+
+  // Transcript Metrics
+  transcript: {
+    totalLines: number
+    totalCharacters: number
+    avgLineLength: number
+    processingTimeMs: number
+    turnCount: number
+    avgTurnsPerMinute: number
+  }
+
+  // System Metrics
+  system: {
+    avgMemoryMb: number
+    peakMemoryMb: number
+    avgCpuPercent: number
+    peakCpuPercent: number
+    upTimeMs: number
+    errorsLogged: number
+    warningsLogged: number
+  }
+
+  // Quality Metrics
+  quality: {
+    audioQuality: 'poor' | 'fair' | 'good' | 'excellent'
+    transcriptionAccuracy: number // 0-1
+    llmCodeQuality: number // 0-1
+    userSatisfactionScore?: number // 1-5
+  }
 }

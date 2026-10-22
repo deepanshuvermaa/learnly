@@ -97,25 +97,50 @@ export function cancel(requestId: string): void {
   inflight.delete(requestId)
 }
 
-/** Embed text using the configured embedding provider (must be embeddings-capable). */
+/** Parse a stored secret into individual, trimmed keys. Values may hold several
+ *  comma-separated keys (addSecret joins them) or stray whitespace/newlines, so
+ *  callers must never pass the raw string to a provider as a single key. */
+function parseKeys(provider: ProviderId): string[] {
+  return (getSecret(provider) || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0)
+}
+
+/**
+ * Embed text, preferring the configured embedding provider but falling through
+ * to any other embeddings-capable provider when a request fails. Each stored key
+ * is parsed and tried individually — exactly as the chat path does — because the
+ * secret may hold several comma-separated keys or whitespace; passing that raw
+ * blob as one key is what made Gemini reject a valid credential as "Invalid Auth
+ * key." We only throw once every key of every candidate fails, surfacing each
+ * provider's real error so the true cause (bad key, quota) stays visible.
+ */
 export async function embedTexts(input: string[]): Promise<number[][]> {
   const settings = getSettings()
-  let provider = settings.embeddingProvider
-  let spec = PROVIDERS[provider]
-  // Fall back to any embeddings-capable provider that actually has a key.
-  if (!spec.supportsEmbeddings || !getSecret(provider)) {
-    const alt = (Object.keys(PROVIDERS) as ProviderId[]).find(
-      (id) => PROVIDERS[id].supportsEmbeddings && getSecret(id)
-    )
-    if (!alt) throw new Error('No embeddings-capable provider has an API key set.')
-    provider = alt
-    spec = PROVIDERS[alt]
+  const preferred = settings.embeddingProvider
+  const candidates = [
+    preferred,
+    ...(Object.keys(PROVIDERS) as ProviderId[]).filter((p) => p !== preferred)
+  ].filter((p) => PROVIDERS[p].supportsEmbeddings && parseKeys(p).length > 0)
+
+  if (!candidates.length) throw new Error('No embeddings-capable provider has an API key set.')
+
+  const failures: string[] = []
+  for (const provider of candidates) {
+    const spec = PROVIDERS[provider]
+    for (const apiKey of parseKeys(provider)) {
+      try {
+        return await embed({
+          baseUrl: spec.baseUrl,
+          apiKey,
+          model: spec.defaultEmbeddingModel!,
+          input
+        })
+      } catch (err) {
+        failures.push(`${spec.label}: ${(err as Error)?.message?.slice(0, 160) ?? String(err)}`)
+      }
+    }
   }
-  const apiKey = getSecret(provider)!
-  return embed({
-    baseUrl: spec.baseUrl,
-    apiKey,
-    model: spec.defaultEmbeddingModel!,
-    input
-  })
+  throw new Error(`All embedding providers failed — ${failures.join(' · ')}`)
 }

@@ -7,8 +7,6 @@ import type { SttEngine } from './types'
 import { DeepgramEngine } from './deepgram'
 import { WhisperLocalEngine } from './whisper'
 import { logInfo, logWarn, logError } from '../logger'
-import { perfMonitor } from '../performanceMonitor'
-import { metricsCollector } from '../metricsCollector'
 
 /**
  * Owns the lifecycle of the active STT engine and fans transcript/state events

@@ -34,7 +34,9 @@ export function Overlay() {
     suggestions,
     clearTranscript,
     setInteractive,
-    interactive
+    interactive,
+    freshAsk,
+    setFreshAsk
   } = useStore()
 
   const toggleAuto = async () => {
@@ -208,6 +210,9 @@ export function Overlay() {
         <PillButton variant="ghost" onClick={() => ask()}>
           Ask now
         </PillButton>
+        <HairlineButton active={freshAsk} onClick={() => setFreshAsk(!freshAsk)}>
+          {freshAsk ? 'Fresh ✓' : 'Fresh'}
+        </HairlineButton>
         <HairlineButton active={settings?.copilot.mode === 'auto'} onClick={toggleAuto}>
           {settings?.copilot.mode === 'auto' ? 'Auto ✓' : 'Auto'}
         </HairlineButton>

@@ -23,13 +23,29 @@ import { logInfo } from '../logger'
 // Silence (ms) before Deepgram closes a turn. High enough to survive the natural
 // mid-question pauses that were fragmenting questions before.
 const ENDPOINTING_MS = 900
-const UTTERANCE_END_MS = 1000
+const UTTERANCE_END_MS = 1800
 // Safety net: if UtteranceEnd never arrives, flush the buffered turn anyway.
-const FALLBACK_FLUSH_MS = 3500
+const FALLBACK_FLUSH_MS = 4500
+// When UtteranceEnd fires but the turn still looks mid-thought (no terminal
+// punctuation), wait this much longer for the speaker to resume before
+// committing, so one question split by a breath isn't answered in pieces.
+const CONTINUATION_GRACE_MS = 1400
+
+/** A turn ends on a complete thought: terminal punctuation, allowing a trailing quote/bracket. */
+function endsCompleteThought(text: string): boolean {
+  return /[.?!]["')\]]?\s*$/.test(text.trim())
+}
 
 interface TurnBuffer {
   text: string
+  /** Stream-relative offset (ms) of the turn's first word, for segment positioning. */
   startMs: number
+  /** Stream-relative offset (ms) of the latest finalized fragment's end. */
+  endMs: number
+  /** Wall-clock time the turn began, for real latency measurement. */
+  wallStart: number
+  /** True once we've already granted a continuation grace window for this turn. */
+  graced: boolean
   timer?: NodeJS.Timeout
 }
 
@@ -88,9 +104,9 @@ export class DeepgramEngine implements SttEngine {
       return
     }
 
-    // The speaker has genuinely stopped talking → close the turn.
+    // The speaker has genuinely stopped talking → consider closing the turn.
     if (msg.type === 'UtteranceEnd') {
-      this.flush(speaker)
+      this.maybeFlush(speaker)
       return
     }
     if (msg.type && msg.type !== 'Results') return
@@ -100,12 +116,18 @@ export class DeepgramEngine implements SttEngine {
     if (!text) return
 
     const isFinal = Boolean(msg.is_final)
-    const buf = this.buffers.get(speaker) ?? { text: '', startMs: Math.round((msg.start ?? 0) * 1000) }
+    const startMs = Math.round((msg.start ?? 0) * 1000)
+    const buf =
+      this.buffers.get(speaker) ?? { text: '', startMs, endMs: startMs, wallStart: Date.now(), graced: false }
 
     if (isFinal) {
       // Append this finalized fragment to the current turn; keep waiting for
       // UtteranceEnd before we consider the turn complete.
       buf.text = buf.text ? `${buf.text} ${text}` : text
+      buf.endMs = Math.round(((msg.start ?? 0) + (msg.duration ?? 0)) * 1000)
+      // Fresh speech after a grace window means the speaker resumed; re-arm so
+      // the next pause is re-evaluated for completeness rather than committed.
+      buf.graced = false
       if (buf.timer) clearTimeout(buf.timer)
       buf.timer = setTimeout(() => this.flush(speaker), FALLBACK_FLUSH_MS)
       this.buffers.set(speaker, buf)
@@ -114,6 +136,23 @@ export class DeepgramEngine implements SttEngine {
       // Interim word(s): show buffered turn + the in-progress tail, don't commit.
       this.emitInterim(speaker, buf.text ? `${buf.text} ${text}` : text)
     }
+  }
+
+  /**
+   * UtteranceEnd arrived. Commit immediately if the turn reads as a complete
+   * thought; otherwise grant one grace window for the speaker to resume, so a
+   * natural mid-question pause doesn't split one question into two turns.
+   */
+  private maybeFlush(speaker: Speaker): void {
+    const buf = this.buffers.get(speaker)
+    if (!buf || !buf.text.trim()) return
+    if (endsCompleteThought(buf.text) || buf.graced) {
+      this.flush(speaker)
+      return
+    }
+    buf.graced = true
+    if (buf.timer) clearTimeout(buf.timer)
+    buf.timer = setTimeout(() => this.flush(speaker), CONTINUATION_GRACE_MS)
   }
 
   /** Commit the buffered turn as a single final segment. */
@@ -130,11 +169,13 @@ export class DeepgramEngine implements SttEngine {
       text: buf.text.trim(),
       isFinal: true,
       startMs: buf.startMs,
-      endMs: buf.startMs
+      endMs: buf.endMs
     }
 
-    // Record metrics
-    const durationMs = Date.now() - buf.startMs
+    // Real elapsed time of the spoken turn, measured against wall-clock start.
+    // (Earlier this subtracted a stream-relative offset from Date.now(), which
+    // reported every utterance as tens of thousands of years long.)
+    const durationMs = Date.now() - buf.wallStart
     const wordCount = segment.text.split(/\s+/).length
     const avgConfidence = 0.92 // Deepgram doesn't expose per-utterance confidence in live mode, default to high
 

@@ -52,6 +52,18 @@ export function getSecret(key: SecretKey): string | null {
   return null
 }
 
+/** Append a new key to any already stored for this provider (comma-separated), deduping. */
+export function addSecret(key: SecretKey, value: string): void {
+  const trimmed = value.trim()
+  if (!trimmed) return
+  const existing = (getSecret(key) || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean)
+  if (!existing.includes(trimmed)) existing.push(trimmed)
+  setSecret(key, existing.join(','))
+}
+
 export function clearSecret(key: SecretKey): void {
   const secrets = store.get('secrets', {})
   delete secrets[key]
@@ -59,14 +71,17 @@ export function clearSecret(key: SecretKey): void {
 }
 
 export function secretsStatus(): SecretsStatus {
-  const secrets = store.get('secrets', {})
-  const has = (k: SecretKey) => Boolean(secrets[k])
+  const count = (k: SecretKey): number => {
+    const value = getSecret(k)
+    if (!value) return 0
+    return value.split(',').map((v) => v.trim()).filter(Boolean).length
+  }
   return {
-    gemini: has('gemini'),
-    openai: has('openai'),
-    groq: has('groq'),
-    xai: has('xai'),
-    moonshot: has('moonshot'),
-    deepgram: has('deepgram')
+    gemini: count('gemini'),
+    openai: count('openai'),
+    groq: count('groq'),
+    xai: count('xai'),
+    moonshot: count('moonshot'),
+    deepgram: count('deepgram')
   }
 }

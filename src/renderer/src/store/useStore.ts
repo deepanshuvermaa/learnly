@@ -30,11 +30,16 @@ interface AppState {
 
   suggestions: Suggestion[]
 
+  // When true, "Ask now" answers the question standalone — no prior
+  // transcript/chat history is sent, only the question itself.
+  freshAsk: boolean
+
   setSettings: (s: Settings) => void
   setSecrets: (s: SecretsStatus) => void
   setCapturing: (v: boolean) => void
   setSttState: (state: string, detail?: string) => void
   setInteractive: (v: boolean) => void
+  setFreshAsk: (v: boolean) => void
 
   pushTranscript: (seg: TranscriptSegment) => void
   clearTranscript: () => void
@@ -55,12 +60,14 @@ export const useStore = create<AppState>((set, get) => ({
   finals: [],
   interim: { me: null, them: null },
   suggestions: [],
+  freshAsk: false,
 
   setSettings: (s) => set({ settings: s }),
   setSecrets: (s) => set({ secrets: s }),
   setCapturing: (v) => set({ capturing: v }),
   setSttState: (state, detail) => set({ sttState: state, sttDetail: detail }),
   setInteractive: (v) => set({ interactive: v }),
+  setFreshAsk: (v) => set({ freshAsk: v }),
 
   pushTranscript: (seg) =>
     set((st) => {

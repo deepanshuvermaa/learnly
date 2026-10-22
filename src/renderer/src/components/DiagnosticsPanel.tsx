@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import type { SessionMetrics } from '../../../main/services/metricsCollector'
+import type { SessionMetrics } from '@shared/types'
 
 /**
  * Diagnostics panel showing real-time performance metrics and bottleneck detection.

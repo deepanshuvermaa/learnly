@@ -54,17 +54,20 @@ export function HairlineButton({
   children,
   onClick,
   active,
-  className = ''
+  className = '',
+  title
 }: {
   children: React.ReactNode
   onClick?: () => void
   active?: boolean
   className?: string
+  title?: string
 }) {
   return (
     <button
       className={`no-drag ${className}`}
       onClick={onClick}
+      title={title}
       style={{
         background: active ? 'var(--surface-frosted-strong)' : 'transparent',
         color: active ? 'var(--color-bone)' : 'var(--color-smoke)',

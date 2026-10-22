@@ -30,6 +30,8 @@ const api = {
   secrets: {
     set: (key: SecretKey, value: string): Promise<SecretsStatus> =>
       ipcRenderer.invoke(IPC.secretsSet, key, value),
+    add: (key: SecretKey, value: string): Promise<SecretsStatus> =>
+      ipcRenderer.invoke(IPC.secretsAdd, key, value),
     clear: (key: SecretKey): Promise<SecretsStatus> => ipcRenderer.invoke(IPC.secretsClear, key),
     status: (): Promise<SecretsStatus> => ipcRenderer.invoke(IPC.secretsStatus)
   },

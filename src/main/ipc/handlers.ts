@@ -12,7 +12,7 @@ import type {
   CodeLanguage
 } from '@shared/types'
 import { getSettings, setSettings } from '../services/settings'
-import { setSecret, clearSecret, secretsStatus, type SecretKey } from '../services/secrets'
+import { setSecret, addSecret, clearSecret, secretsStatus, type SecretKey } from '../services/secrets'
 import { complete, cancel } from '../services/llm/router'
 import { buildMessages } from '../services/prompt'
 import { ingestText, query, listDocuments, deleteDocument, clearAll } from '../services/rag/store'
@@ -53,6 +53,10 @@ export function registerIpc(): void {
   })
   ipcMain.handle(IPC.secretsSet, (_e, key: SecretKey, value: string) => {
     setSecret(key, value)
+    return secretsStatus()
+  })
+  ipcMain.handle(IPC.secretsAdd, (_e, key: SecretKey, value: string) => {
+    addSecret(key, value)
     return secretsStatus()
   })
   ipcMain.handle(IPC.secretsClear, (_e, key: SecretKey) => {

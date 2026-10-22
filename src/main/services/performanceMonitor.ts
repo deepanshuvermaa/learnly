@@ -229,7 +229,7 @@ class PerformanceMonitor {
     operations: OperationMetric[]
     systemMetrics: SystemMetric[]
     bottlenecks: BottleneckReport[]
-    summary: ReturnType<typeof this.getSummary>
+    summary: ReturnType<PerformanceMonitor['getSummary']>
   } {
     return {
       operations: this.operations,

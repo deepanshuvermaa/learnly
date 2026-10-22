@@ -201,7 +201,7 @@ async function main() {
     assert.equal(msgs.length, 2)
     assert.ok(msgs[0].content.startsWith('Persona.'))
     assert.ok(msgs[0].content.includes('```python'))
-    assert.ok(msgs[1].content.includes('minimal working code'))
+    assert.ok(msgs[1].content.includes('minimal code that actually runs'))
     assert.ok(msgs[1].content.includes('source: package.json'))
   })
 

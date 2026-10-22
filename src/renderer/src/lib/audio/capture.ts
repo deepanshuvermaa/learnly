@@ -30,7 +30,7 @@ export class CaptureController {
   }): Promise<void> {
     if (this.running) return
     this.ctx = new AudioContext()
-    await this.ctx.audioWorklet.addModule('/pcm-worklet.js')
+    await this.ctx.audioWorklet.addModule('./pcm-worklet.js')
 
     if (opts.captureMic) {
       this.micStream = await navigator.mediaDevices.getUserMedia({

@@ -53,7 +53,6 @@ export async function ask(explicitQuestion?: string): Promise<void> {
     activeRequestId = null
   }
 
-  const { messages, context } = await window.listenly.copilot.prepare({ transcript, explicitQuestion })
   // Answer the interviewer's most recent COMPLETED turn (final 'them'), falling
   // back to an in-progress 'them' line, then the last line.
   const question =
@@ -63,10 +62,19 @@ export async function ask(explicitQuestion?: string): Promise<void> {
     transcript.slice(-1)[0]?.text ??
     'Latest question'
 
+  // "Fresh ask" strips prior transcript/chat history from the prompt so a
+  // standalone question (e.g. a follow-up on an unrelated topic) isn't
+  // answered as if it continues the previous question.
+  const freshAsk = st.freshAsk
+  const { messages, context } = await window.listenly.copilot.prepare({
+    transcript: freshAsk ? [] : transcript,
+    explicitQuestion: freshAsk ? question : explicitQuestion
+  })
+
   const suggestionId = st.startSuggestion(question, context)
   const requestId = uid('req')
   activeRequestId = requestId
   requestToSuggestion.set(requestId, suggestionId)
 
-  await window.listenly.llm.complete({ requestId, messages, temperature: 0.3, maxTokens: 600 })
+  await window.listenly.llm.complete({ requestId, messages, temperature: 0.3, maxTokens: 4000 })
 }

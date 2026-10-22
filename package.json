@@ -4,6 +4,9 @@
     "description":  "Local-first, BYO-key real-time meeting recall copilot",
     "author":  "Deepanshu Verma \u003cdeepanshuverma966@gmail.com\u003e",
     "license":  "GPL-3.0-or-later",
+    "engines":  {
+                    "node":  ">=22.19.0"
+                },
     "main":  "./out/main/index.js",
     "scripts":  {
                     "dev":  "electron-vite dev",

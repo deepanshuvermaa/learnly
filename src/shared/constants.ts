@@ -48,7 +48,7 @@ export const PROVIDERS: Record<ProviderId, ProviderSpec> = {
     id: 'groq',
     label: 'Groq',
     baseUrl: 'https://api.groq.com/openai/v1',
-    defaultModel: 'llama-3.3-70b-versatile',
+    defaultModel: 'openai/gpt-oss-120b',
     supportsEmbeddings: false,
     keysUrl: 'https://console.groq.com/keys'
   },
@@ -78,6 +78,7 @@ export const IPC = {
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
   secretsSet: 'secrets:set',
+  secretsAdd: 'secrets:add',
   secretsStatus: 'secrets:status',
   secretsClear: 'secrets:clear',
 
@@ -148,7 +149,7 @@ export const IPC = {
 export const DEFAULT_SHORTCUTS = {
   toggleOverlay: 'CommandOrControl+Shift+Space',
   toggleListening: 'CommandOrControl+Shift+Enter',
-  askNow: 'CommandOrControl+Alt+A',
+  askNow: 'CommandOrControl+Shift+Q',
   toggleClickThrough: 'CommandOrControl+Shift+I',
   toggleCodePanel: 'CommandOrControl+Shift+G'
 } as const

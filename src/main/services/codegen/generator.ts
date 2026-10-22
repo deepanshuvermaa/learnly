@@ -17,7 +17,7 @@ export const SCOPE_MAX_TOKENS: Record<CodeGenScope, number> = {
 const SCOPE_INSTRUCTIONS: Record<CodeGenScope, string> = {
   'brute-force': [
     'Explain the approach in 2-3 conversational sentences.',
-    'Then give the minimal working code: the core function only, no imports, no comments, no logging.',
+    'Then give the minimal code that actually runs as-is: the core function plus any imports it needs to execute. No comments, no logging.',
     'Prefer the simplest correct solution over the cleverest one.'
   ].join('\n'),
   walkthrough: [
@@ -90,8 +90,11 @@ export function buildCodeGenMessages(args: {
     systemPrompt.trim(),
     '',
     '## Output format',
-    'Reply with the explanation as plain prose first, then the code in a single fenced block',
+    'Reply with the explanation as plain prose first, then the code in ONE single fenced block',
     `tagged with the language (\`\`\`${language === 'bash' ? 'bash' : language}). Nothing after the code block.`,
+    'That one block must be the complete, self-contained solution the user can copy, paste, and run as-is:',
+    'include every import and definition it needs to execute. Do NOT split the code across multiple blocks,',
+    'do NOT interleave prose between code blocks, and do NOT append a separate example/usage block.',
     'Write code the way a careful senior engineer on this team would commit it: idiomatic, specific names,',
     'no placeholder TODOs, no debug logging, no commented-out code.',
     LANGUAGE_GUIDANCE[language]
@@ -141,8 +144,16 @@ export function parseCodeResponse(
     blocks.push({ lang: m[1], body: m[2] })
     prose = prose.replace(m[0], '\n')
   }
-  const language = normalizeLanguage(blocks[0]?.lang) ?? fallbackLanguage
-  const code = blocks.length ? blocks.map((b) => b.body).join('\n\n') : ''
+  // Take the single largest block as THE answer rather than concatenating every
+  // block. Models often append a separate usage/example block; splicing them
+  // together produced jumbled, non-runnable code. The largest block is the
+  // complete solution the user can paste and run as-is.
+  const primary = blocks.reduce<{ lang: string; body: string } | null>(
+    (best, b) => (!best || b.body.length > best.body.length ? b : best),
+    null
+  )
+  const language = normalizeLanguage(primary?.lang) ?? fallbackLanguage
+  const code = primary ? primary.body : ''
   const explanation = prose
     .replace(/^#+\s.*$/gm, '')
     .replace(/\*\*(.+?)\*\*/g, '$1')

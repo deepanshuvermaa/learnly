@@ -131,41 +131,58 @@ export function Settings() {
 function KeyRow({
   id,
   label,
-  hasKey,
+  keyCount,
   keysUrl,
   onSave,
+  onAdd,
   onClear
 }: {
   id: string
   label: string
-  hasKey: boolean
+  keyCount: number
   keysUrl: string
   onSave: (v: string) => void
+  onAdd: (v: string) => void
   onClear: () => void
 }) {
   const [val, setVal] = useState('')
+  const hasKey = keyCount > 0
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{ fontSize: 14, color: 'var(--color-bone)' }}>{label}</span>
         <span style={{ fontSize: 12, color: hasKey ? '#9fce9f' : 'var(--color-slate)' }}>
-          {hasKey ? '● key saved' : 'no key'}
+          {hasKey ? `● ${keyCount} key${keyCount === 1 ? '' : 's'} saved` : 'no key'}
         </span>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <TextInput value={val} onChange={setVal} placeholder={hasKey ? '•••••••• (replace)' : `Paste ${label} key`} mono />
+        <TextInput
+          value={val}
+          onChange={setVal}
+          placeholder={hasKey ? 'Paste another key to add' : `Paste ${label} key`}
+          mono
+        />
         <PillButton
           disabled={!val}
           onClick={() => {
-            onSave(val)
+            if (hasKey) onAdd(val)
+            else onSave(val)
             setVal('')
           }}
         >
-          Save
+          {hasKey ? 'Add key' : 'Save'}
         </PillButton>
         {hasKey && (
-          <HairlineButton onClick={onClear}>Clear</HairlineButton>
+          <HairlineButton
+            onClick={() => {
+              onSave(val)
+              setVal('')
+            }}
+          >
+            Replace all
+          </HairlineButton>
         )}
+        {hasKey && <HairlineButton onClick={onClear}>Clear</HairlineButton>}
       </div>
       <a
         href={keysUrl}
@@ -325,9 +342,10 @@ function ProvidersTab({ settings, secrets, setSecrets, update }: any) {
           key={id}
           id={id}
           label={PROVIDERS[id].label}
-          hasKey={Boolean(secrets?.[id])}
+          keyCount={secrets?.[id] ?? 0}
           keysUrl={PROVIDERS[id].keysUrl}
           onSave={async (v) => setSecrets(await window.listenly.secrets.set(id, v))}
+          onAdd={async (v) => setSecrets(await window.listenly.secrets.add(id, v))}
           onClear={async () => setSecrets(await window.listenly.secrets.clear(id))}
         />
       ))}
@@ -360,9 +378,10 @@ function TranscriptionTab({ settings, secrets, setSecrets, update }: any) {
         <KeyRow
           id="deepgram"
           label="Deepgram"
-          hasKey={Boolean(secrets?.deepgram)}
+          keyCount={secrets?.deepgram ?? 0}
           keysUrl="https://console.deepgram.com/signup"
           onSave={async (v) => setSecrets(await window.listenly.secrets.set('deepgram', v))}
+          onAdd={async (v) => setSecrets(await window.listenly.secrets.add('deepgram', v))}
           onClear={async () => setSecrets(await window.listenly.secrets.clear('deepgram'))}
         />
         <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
@@ -657,8 +676,10 @@ function PrivacyTab({ settings, update }: any) {
 function ShortcutsTab({ settings }: any) {
   const rows: [string, string, string][] = [
     ['Toggle overlay', settings.shortcuts.toggleOverlay, 'Show/hide the overlay window (works globally)'],
-    ['Start/Stop listening', settings.shortcuts.askNow, 'Begin or end transcript capture (works globally)'],
-    ['Toggle click-through', settings.shortcuts.toggleClickThrough, 'Allow mouse clicks through overlay (works globally)']
+    ['Start/Stop listening', settings.shortcuts.toggleListening, 'Begin or end transcript capture (works globally)'],
+    ['Ask now', settings.shortcuts.askNow, 'Ask the model about the latest question (works globally)'],
+    ['Toggle click-through', settings.shortcuts.toggleClickThrough, 'Allow mouse clicks through overlay (works globally)'],
+    ['Toggle code panel', settings.shortcuts.toggleCodePanel, 'Show/hide the code generation panel (works globally)']
   ]
   return (
     <div>
